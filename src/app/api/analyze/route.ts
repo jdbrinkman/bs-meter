@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { processGame } from "@/lib/pipeline/process";
 
+export const maxDuration = 60; // Vercel free tier max (300 on Pro)
+
 export async function POST(request: NextRequest) {
   const apiKey = request.headers.get("x-api-key");
   if (apiKey !== process.env.ADMIN_API_KEY) {

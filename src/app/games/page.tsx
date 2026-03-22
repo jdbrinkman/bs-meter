@@ -15,7 +15,7 @@ export default async function GamesPage({
   const params = await searchParams;
   const bracket = params.bracket as string | undefined;
 
-  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: string } | null }[] = [];
+  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: BracketKey } | null }[] = [];
 
   try {
     const supabase = createAdminClient();

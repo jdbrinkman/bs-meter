@@ -3,9 +3,10 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GameGrid } from "@/components/game/GameGrid";
+import type { BracketKey } from "@/lib/types";
 
 export default async function HomePage() {
-  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: string } | null }[] = [];
+  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: BracketKey } | null }[] = [];
 
   try {
     const supabase = createAdminClient();
