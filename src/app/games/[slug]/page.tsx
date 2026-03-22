@@ -5,10 +5,11 @@ import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { ScoreGauge } from "@/components/bs-meter/ScoreGauge";
 import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
-import { PillarBreakdown } from "@/components/bs-meter/PillarBreakdown";
+import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
 import { SignalList } from "@/components/bs-meter/SignalList";
 import { EvidenceCard } from "@/components/bs-meter/EvidenceCard";
-import type { BracketKey, GameSignal } from "@/lib/types";
+import { getBSScoreLabel } from "@/lib/scoring/brackets";
+import type { VerdictKey, GameSignal } from "@/lib/types";
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -96,19 +97,25 @@ export default async function GameDetailPage({
             </div>
           )}
 
-          {/* Score */}
+          {/* Dual Score */}
           {score && (
-            <div className="flex items-center gap-6">
+            <div className="flex items-start gap-6">
               <ScoreGauge
-                score={score.bs_score}
-                bracket={score.bracket as BracketKey}
+                enjoymentScore={score.enjoyment_score}
+                bsScore={score.bs_score}
+                verdict={score.verdict as VerdictKey}
                 size="lg"
               />
-              <div>
-                <ScoreBracketBadge bracket={score.bracket as BracketKey} />
+              <div className="pt-1">
+                <ScoreBracketBadge bracket={score.verdict as VerdictKey} />
                 {score.confidence && (
                   <p className="mt-2 text-xs text-zinc-500">
                     Confidence: {(score.confidence * 100).toFixed(0)}%
+                  </p>
+                )}
+                {score.bs_score !== null && (
+                  <p className="mt-1 text-xs" style={{ color: getBSScoreLabel(score.bs_score).color }}>
+                    {getBSScoreLabel(score.bs_score).label}
                   </p>
                 )}
               </div>
@@ -129,14 +136,19 @@ export default async function GameDetailPage({
 
       {/* Two-column layout */}
       <div className="grid gap-10 md:grid-cols-2">
-        {/* Pillar Breakdown */}
+        {/* Dimension Breakdown */}
         {score && (
           <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-            <PillarBreakdown
+            <DimensionBreakdown
+              story_quality={score.story_quality_score}
+              narrative_investment={score.narrative_investment_score}
               pacing={score.pacing_score}
-              bloat={score.bloat_score}
-              value={score.value_score}
-              grind={score.grind_score}
+              combat_repetition={score.combat_repetition_score}
+              boss_difficulty={score.boss_difficulty_score}
+              exploration={score.exploration_score}
+              polish_bugs={score.polish_bugs_score}
+              ui_controls={score.ui_controls_score}
+              atmospheric_depth={score.atmospheric_depth_score}
             />
           </div>
         )}
@@ -210,7 +222,7 @@ export default async function GameDetailPage({
         </div>
       )}
 
-      {/* OpenCritic Comparison */}
+      {/* OpenCritic Comparison — now both on 0-100 scale */}
       {score && game.opencritic_score && (
         <div className="mt-10 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
           <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
@@ -226,12 +238,12 @@ export default async function GameDetailPage({
             </div>
             <div className="text-2xl text-zinc-700">vs</div>
             <div>
-              <p className="text-xs text-zinc-500">BS Meter</p>
+              <p className="text-xs text-zinc-500">BS Meter Enjoyment</p>
               <p className="text-2xl font-bold text-white">
-                {score.bs_score}/10
+                {score.enjoyment_score}/100
               </p>
               <p className="text-xs text-zinc-500">
-                {score.bracket.replace(/-/g, " ")}
+                {score.verdict.replace(/-/g, " ")}
               </p>
             </div>
           </div>

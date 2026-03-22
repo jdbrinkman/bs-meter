@@ -2,7 +2,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { ScoreGauge } from "@/components/bs-meter/ScoreGauge";
 import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
-import type { BracketKey } from "@/lib/types";
+import type { VerdictKey } from "@/lib/types";
 
 type GameCardProps = {
   slug: string;
@@ -10,8 +10,9 @@ type GameCardProps = {
   coverUrl: string | null;
   developer: string | null;
   genres: string[];
-  score: number | null;
-  bracket: BracketKey | null;
+  enjoymentScore: number | null;
+  bsScore: number | null;
+  verdict: VerdictKey | null;
 };
 
 export function GameCard({
@@ -20,8 +21,9 @@ export function GameCard({
   coverUrl,
   developer,
   genres,
-  score,
-  bracket,
+  enjoymentScore,
+  bsScore,
+  verdict,
 }: GameCardProps) {
   return (
     <Link
@@ -58,13 +60,18 @@ export function GameCard({
               </p>
             )}
           </div>
-          {score !== null && bracket !== null && (
-            <ScoreGauge score={score} bracket={bracket} size="sm" />
+          {enjoymentScore !== null && bsScore !== null && verdict !== null && (
+            <ScoreGauge
+              enjoymentScore={enjoymentScore}
+              bsScore={bsScore}
+              verdict={verdict}
+              size="sm"
+            />
           )}
         </div>
-        {bracket && (
+        {verdict && (
           <div className="mt-3">
-            <ScoreBracketBadge bracket={bracket} />
+            <ScoreBracketBadge bracket={verdict} />
           </div>
         )}
       </div>

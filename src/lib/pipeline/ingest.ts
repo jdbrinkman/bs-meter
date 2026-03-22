@@ -8,11 +8,14 @@ import {
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic } from "@/lib/api/opencritic";
 import { searchYouTubeChannel, fetchTranscript } from "@/lib/api/youtube";
+import { searchRedditSentiment } from "@/lib/api/reddit";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
 import { SEED_GAMES } from "@/config/seed-games";
-import type { Game } from "@/lib/types";
 
-export async function ingestGameData(gameId: string, title: string) {
+export async function ingestGameData(
+  gameId: string,
+  title: string
+): Promise<{ redditSentiment: string | null }> {
   const supabase = createAdminClient();
 
   // Update status
@@ -45,7 +48,7 @@ export async function ingestGameData(gameId: string, title: string) {
     }
 
     // 2. HLTB time data (try scraper, then fall back to seed data)
-    let hltbData = await searchHLTB(title);
+    const hltbData = await searchHLTB(title);
     if (hltbData) {
       await supabase
         .from("games")
@@ -76,7 +79,7 @@ export async function ingestGameData(gameId: string, title: string) {
       }
     }
 
-    // 3. OpenCritic (may fail if API key not configured for RapidAPI)
+    // 3. OpenCritic
     try {
       const ocData = await searchOpenCritic(title);
       if (ocData) {
@@ -121,7 +124,14 @@ export async function ingestGameData(gameId: string, title: string) {
       }
     }
 
+    // 5. Reddit sentiment via Perplexity (optional — graceful failure)
+    const redditSentiment = await searchRedditSentiment(title);
+    if (redditSentiment) {
+      console.log(`Reddit sentiment fetched for ${title}`);
+    }
+
     console.log(`Ingestion complete for: ${title}`);
+    return { redditSentiment };
   } catch (error) {
     const errorMsg =
       error instanceof Error ? error.message : String(error);

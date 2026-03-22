@@ -10,10 +10,11 @@ import type { Game, ReviewSource } from "@/lib/types";
 export async function analyzeGame(
   game: Game,
   reviewSources: ReviewSource[],
-  genreKey: string
+  genreKey: string,
+  redditSentiment?: string | null
 ): Promise<AnalysisResponse> {
   const client = getGeminiClient();
-  const prompt = buildAnalysisPrompt(game, reviewSources, genreKey);
+  const prompt = buildAnalysisPrompt(game, reviewSources, genreKey, redditSentiment);
 
   // Try up to 2 times (initial + 1 retry)
   for (let attempt = 0; attempt < 2; attempt++) {

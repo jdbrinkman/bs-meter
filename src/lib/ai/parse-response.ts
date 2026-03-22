@@ -9,11 +9,16 @@ export const signalResponseSchema = z.object({
 });
 
 export const analysisResponseSchema = z.object({
-  pillar_scores: z.object({
+  dimension_scores: z.object({
+    story_quality: z.number().min(1).max(10),
+    narrative_investment: z.number().min(1).max(10),
     pacing: z.number().min(1).max(10),
-    bloat: z.number().min(1).max(10),
-    value: z.number().min(1).max(10),
-    grind: z.number().min(1).max(10),
+    combat_repetition: z.number().min(1).max(10),
+    boss_difficulty: z.number().min(1).max(10),
+    exploration: z.number().min(1).max(10),
+    polish_bugs: z.number().min(1).max(10),
+    ui_controls: z.number().min(1).max(10),
+    atmospheric_depth: z.number().min(1).max(10),
   }),
   signals: z.array(signalResponseSchema),
   summary: z.string(),
@@ -28,15 +33,30 @@ export type AnalysisResponse = z.infer<typeof analysisResponseSchema>;
 export const analysisJsonSchema = {
   type: "object",
   properties: {
-    pillar_scores: {
+    dimension_scores: {
       type: "object",
       properties: {
+        story_quality: { type: "number" },
+        narrative_investment: { type: "number" },
         pacing: { type: "number" },
-        bloat: { type: "number" },
-        value: { type: "number" },
-        grind: { type: "number" },
+        combat_repetition: { type: "number" },
+        boss_difficulty: { type: "number" },
+        exploration: { type: "number" },
+        polish_bugs: { type: "number" },
+        ui_controls: { type: "number" },
+        atmospheric_depth: { type: "number" },
       },
-      required: ["pacing", "bloat", "value", "grind"],
+      required: [
+        "story_quality",
+        "narrative_investment",
+        "pacing",
+        "combat_repetition",
+        "boss_difficulty",
+        "exploration",
+        "polish_bugs",
+        "ui_controls",
+        "atmospheric_depth",
+      ],
     },
     signals: {
       type: "array",
@@ -66,7 +86,7 @@ export const analysisJsonSchema = {
     confidence: { type: "number" },
   },
   required: [
-    "pillar_scores",
+    "dimension_scores",
     "signals",
     "summary",
     "top_reasons",

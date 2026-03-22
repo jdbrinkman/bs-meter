@@ -3,10 +3,17 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GameGrid } from "@/components/game/GameGrid";
-import type { BracketKey } from "@/lib/types";
+import type { VerdictKey } from "@/lib/types";
 
 export default async function HomePage() {
-  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: BracketKey } | null }[] = [];
+  let formattedGames: {
+    slug: string;
+    title: string;
+    cover_url: string | null;
+    developer: string | null;
+    genres: string[];
+    scores: { enjoyment_score: number; bs_score: number; verdict: VerdictKey } | null;
+  }[] = [];
 
   try {
     const supabase = createAdminClient();
@@ -15,7 +22,7 @@ export default async function HomePage() {
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (bs_score, bracket)
+        scores (enjoyment_score, bs_score, verdict)
       `
       )
       .eq("analysis_status", "complete")
@@ -31,14 +38,14 @@ export default async function HomePage() {
   }
 
   // Split into featured categories
-  const leanest = [...formattedGames]
+  const topRated = [...formattedGames]
     .filter((g) => g.scores)
-    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0))
+    .sort((a, b) => (b.scores?.enjoyment_score || 0) - (a.scores?.enjoyment_score || 0))
     .slice(0, 5);
 
   const mostBloated = [...formattedGames]
     .filter((g) => g.scores)
-    .sort((a, b) => (a.scores?.bs_score || 0) - (b.scores?.bs_score || 0))
+    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0))
     .slice(0, 5);
 
   return (
@@ -65,28 +72,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Bracket Legend */}
+      {/* Verdict Legend */}
       <section className="border-b border-zinc-800 px-4 py-6">
         <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 text-xs">
-          <span className="font-bold text-blue-500">9-10 Lean Masterpiece</span>
+          <span className="font-bold text-blue-500">88-100 Must Play</span>
           <span className="text-zinc-700">|</span>
-          <span className="font-bold text-green-500">7-8 High Signal</span>
+          <span className="font-bold text-green-500">78-87 Buy</span>
           <span className="text-zinc-700">|</span>
-          <span className="font-bold text-yellow-500">5-6 Fair Trade</span>
+          <span className="font-bold text-yellow-500">65-77 Worth Playing</span>
           <span className="text-zinc-700">|</span>
-          <span className="font-bold text-orange-500">3-4 Content Sludge</span>
+          <span className="font-bold text-orange-500">40-64 Mixed</span>
           <span className="text-zinc-700">|</span>
-          <span className="font-bold text-red-500">1-2 Clock Puncher</span>
+          <span className="font-bold text-red-500">0-39 Skip</span>
         </div>
       </section>
 
-      {/* Leanest Games */}
-      {leanest.length > 0 && (
+      {/* Top Rated */}
+      {topRated.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-12">
           <h2 className="mb-6 text-2xl font-bold text-white">
-            Leanest Games
+            Must Play
           </h2>
-          <GameGrid games={leanest} />
+          <GameGrid games={topRated} />
         </section>
       )}
 
@@ -94,7 +101,7 @@ export default async function HomePage() {
       {mostBloated.length > 0 && (
         <section className="mx-auto max-w-7xl px-4 py-12">
           <h2 className="mb-6 text-2xl font-bold text-white">
-            Most Bloated
+            Highest BS Score
           </h2>
           <GameGrid games={mostBloated} />
         </section>
