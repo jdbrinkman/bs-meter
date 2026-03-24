@@ -8,7 +8,6 @@ type GameGridItem = {
   developer: string | null;
   genres: string[];
   scores: {
-    enjoyment_score: number;
     bs_score: number;
     verdict: VerdictKey;
   } | null;
@@ -21,7 +20,7 @@ type GameGridProps = {
 export function GameGrid({ games }: GameGridProps) {
   if (games.length === 0) {
     return (
-      <div className="py-12 text-center text-zinc-500">
+      <div className="py-12 text-center text-on-surface-variant font-label">
         No games found. Check back soon!
       </div>
     );
@@ -37,7 +36,6 @@ export function GameGrid({ games }: GameGridProps) {
           coverUrl={game.cover_url}
           developer={game.developer}
           genres={game.genres}
-          enjoymentScore={game.scores?.enjoyment_score ?? null}
           bsScore={game.scores?.bs_score ?? null}
           verdict={game.scores?.verdict ?? null}
         />

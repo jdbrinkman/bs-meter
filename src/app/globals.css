@@ -1,10 +1,58 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+@theme {
+  /* Backgrounds / Surfaces */
+  --color-background:                 #0e0e0e;
+  --color-surface:                    #0e0e0e;
+  --color-surface-dim:                #0e0e0e;
+  --color-surface-bright:             #2c2c2c;
+  --color-surface-container-lowest:   #000000;
+  --color-surface-container-low:      #131313;
+  --color-surface-container:          #1a1919;
+  --color-surface-container-high:     #201f1f;
+  --color-surface-container-highest:  #262626;
+
+  /* On-surface text */
+  --color-on-surface:                 #ffffff;
+  --color-on-surface-variant:         #adaaaa;
+  --color-outline:                    #777575;
+  --color-outline-variant:            #494847;
+  --color-inverse-on-surface:         #565554;
+
+  /* Primary (neon green) */
+  --color-primary:                    #3fff8b;
+  --color-primary-dim:                #24f07e;
+  --color-primary-fixed:              #3fff8b;
+  --color-primary-fixed-dim:          #24f07e;
+  --color-primary-container:          #13ea79;
+  --color-on-primary:                 #005d2c;
+  --color-on-primary-container:       #004f24;
+  --color-on-primary-fixed:           #004820;
+  --color-on-primary-fixed-variant:   #006832;
+  --color-inverse-primary:            #006e35;
+
+  /* Secondary (teal) */
+  --color-secondary:                  #45fec9;
+  --color-secondary-dim:              #2cefbc;
+  --color-secondary-container:        #006c52;
+  --color-on-secondary:               #005d47;
+
+  /* Error */
+  --color-error:                      #ff716c;
+  --color-error-container:            #9f0519;
+  --color-on-error:                   #490006;
+  --color-on-error-container:         #ffa8a3;
+
+  --color-surface-tint:               #3fff8b;
+
+  /* Fonts */
+  --font-headline: 'Space Grotesk', sans-serif;
+  --font-body:     'Manrope', sans-serif;
+  --font-label:    'Inter', sans-serif;
 }
 
 body {
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-body), Arial, sans-serif;
+  background-color: var(--color-background);
+  color: var(--color-on-surface);
 }

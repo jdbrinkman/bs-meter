@@ -10,8 +10,12 @@ export function ScoreBracketBadge({ bracket }: ScoreBracketBadgeProps) {
 
   return (
     <span
-      className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold text-white"
-      style={{ backgroundColor: info.color }}
+      className="inline-flex items-center rounded-full px-3 py-1 text-xs font-bold font-headline tracking-wide"
+      style={{
+        backgroundColor: `${info.color}20`,
+        color: info.color,
+        border: `1px solid ${info.color}40`,
+      }}
     >
       {info.label}
     </span>

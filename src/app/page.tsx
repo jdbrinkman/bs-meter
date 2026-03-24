@@ -1,19 +1,22 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
+import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GameGrid } from "@/components/game/GameGrid";
+import { getBSScoreLabel } from "@/lib/scoring/brackets";
 import type { VerdictKey } from "@/lib/types";
 
+type GameRow = {
+  slug: string;
+  title: string;
+  cover_url: string | null;
+  developer: string | null;
+  genres: string[];
+  scores: { bs_score: number; verdict: VerdictKey } | null;
+};
+
 export default async function HomePage() {
-  let formattedGames: {
-    slug: string;
-    title: string;
-    cover_url: string | null;
-    developer: string | null;
-    genres: string[];
-    scores: { enjoyment_score: number; bs_score: number; verdict: VerdictKey } | null;
-  }[] = [];
+  let formattedGames: GameRow[] = [];
 
   try {
     const supabase = createAdminClient();
@@ -22,7 +25,7 @@ export default async function HomePage() {
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (enjoyment_score, bs_score, verdict)
+        scores (bs_score, verdict)
       `
       )
       .eq("analysis_status", "complete")
@@ -37,87 +40,144 @@ export default async function HomePage() {
     // Supabase not configured yet — show empty state
   }
 
-  // Split into featured categories
   const topRated = [...formattedGames]
     .filter((g) => g.scores)
-    .sort((a, b) => (b.scores?.enjoyment_score || 0) - (a.scores?.enjoyment_score || 0))
-    .slice(0, 5);
+    .sort((a, b) => (a.scores?.bs_score || 10) - (b.scores?.bs_score || 10));
 
   const mostBloated = [...formattedGames]
     .filter((g) => g.scores)
-    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0))
-    .slice(0, 5);
+    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0));
 
   return (
-    <div>
-      {/* Hero */}
-      <section className="border-b border-zinc-800 bg-gradient-to-b from-zinc-900 to-zinc-950 px-4 py-20 text-center">
-        <div className="mx-auto max-w-3xl">
-          <div className="mb-4 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-red-600 text-2xl font-black text-white">
-            BS
-          </div>
-          <h1 className="mb-4 text-4xl font-black tracking-tight text-white sm:text-5xl">
-            Cut Through the Content
+    <div className="min-h-screen">
+
+      {/* ── TAGLINE ── */}
+      <section className="px-8 pt-8 pb-6 border-b border-outline-variant/10">
+        <div className="mx-auto max-w-[1440px]">
+          <h1 className="font-headline font-black tracking-tighter text-on-surface leading-none mb-2 text-4xl md:text-5xl">
+            CUT THROUGH THE CONTENT
           </h1>
-          <p className="mb-8 text-lg text-zinc-400">
-            AI-powered scoring that detects bloat, filler, and grind in video
-            games. Find games that respect your time.
+          <p className="text-on-surface-variant font-body text-sm">
+            AI scores that detect bloat and filler. Find games that actually respect your time.
           </p>
-          <Link
-            href="/games"
-            className="inline-flex items-center rounded-lg bg-red-600 px-6 py-3 text-sm font-semibold text-white transition-colors hover:bg-red-700"
-          >
-            Browse All Games
-          </Link>
         </div>
       </section>
 
-      {/* Verdict Legend */}
-      <section className="border-b border-zinc-800 px-4 py-6">
-        <div className="mx-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 text-xs">
-          <span className="font-bold text-blue-500">88-100 Must Play</span>
-          <span className="text-zinc-700">|</span>
-          <span className="font-bold text-green-500">78-87 Buy</span>
-          <span className="text-zinc-700">|</span>
-          <span className="font-bold text-yellow-500">65-77 Worth Playing</span>
-          <span className="text-zinc-700">|</span>
-          <span className="font-bold text-orange-500">40-64 Mixed</span>
-          <span className="text-zinc-700">|</span>
-          <span className="font-bold text-red-500">0-39 Skip</span>
-        </div>
-      </section>
-
-      {/* Top Rated */}
+      {/* ── MUST PLAY ── */}
       {topRated.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-12">
-          <h2 className="mb-6 text-2xl font-bold text-white">
-            Must Play
-          </h2>
-          <GameGrid games={topRated} />
+        <section className="py-10 border-b border-outline-variant/10">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="flex items-baseline justify-between px-8 mb-6">
+              <div>
+                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
+                  Must Play
+                </h2>
+                <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+              </div>
+              <Link
+                href="/games"
+                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
+              >
+                See All →
+              </Link>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 px-8 scrollbar-hide">
+              {topRated.map((game, i) => (
+                <GameRowCard key={game.slug} game={game} eager={i === 0} />
+              ))}
+            </div>
+          </div>
         </section>
       )}
 
-      {/* Most Bloated */}
+      {/* ── HIGHEST BS SCORE ── */}
       {mostBloated.length > 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-12">
-          <h2 className="mb-6 text-2xl font-bold text-white">
-            Highest BS Score
-          </h2>
-          <GameGrid games={mostBloated} />
+        <section className="py-10 border-b border-outline-variant/10">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="flex items-baseline justify-between px-8 mb-6">
+              <div>
+                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
+                  Highest BS Score
+                </h2>
+                <div className="w-8 h-0.5 bg-error mt-1.5 rounded-full" />
+              </div>
+              <Link
+                href="/games"
+                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
+              >
+                See All →
+              </Link>
+            </div>
+            <div className="flex gap-4 overflow-x-auto pb-3 px-8 scrollbar-hide">
+              {mostBloated.map((game, i) => (
+                <GameRowCard key={game.slug} game={game} eager={i === 0} />
+              ))}
+            </div>
+          </div>
         </section>
       )}
 
-      {/* Empty state */}
+      {/* ── EMPTY STATE ── */}
       {formattedGames.length === 0 && (
-        <section className="mx-auto max-w-7xl px-4 py-20 text-center">
-          <p className="text-lg text-zinc-500">
-            No games analyzed yet. Run the seed pipeline to get started!
+        <section className="mx-auto max-w-[1440px] px-8 py-32 text-center">
+          <p className="text-xl text-on-surface-variant font-body mb-2">
+            No games analyzed yet.
           </p>
-          <p className="mt-2 text-sm text-zinc-600">
+          <p className="text-sm text-outline font-label">
             POST /api/seed with your admin API key to begin.
           </p>
         </section>
       )}
     </div>
+  );
+}
+
+function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
+  const bsLabel = game.scores ? getBSScoreLabel(game.scores.bs_score) : null;
+
+  return (
+    <Link
+      href={`/games/${game.slug}`}
+      className="group flex-shrink-0 w-36 md:w-40"
+    >
+      {/* Cover */}
+      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3">
+        {game.cover_url ? (
+          <Image
+            src={game.cover_url}
+            alt={game.title}
+            fill
+            loading={eager ? "eager" : undefined}
+            className="object-cover transition-transform group-hover:scale-105"
+            sizes="160px"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
+            No Cover
+          </div>
+        )}
+      </div>
+
+      {/* Info */}
+      <p className="text-sm font-headline font-bold text-on-surface truncate mb-1">
+        {game.title}
+      </p>
+      {bsLabel && game.scores && (
+        <div className="flex items-center gap-2">
+          <span
+            className="text-xs font-headline font-black tabular-nums px-2 py-0.5 rounded-md"
+            style={{
+              backgroundColor: `${bsLabel.color}20`,
+              color: bsLabel.color,
+            }}
+          >
+            {game.scores.bs_score.toFixed(1)}
+          </span>
+          <span className="text-xs font-label text-on-surface-variant truncate">
+            {bsLabel.label}
+          </span>
+        </div>
+      )}
+    </Link>
   );
 }

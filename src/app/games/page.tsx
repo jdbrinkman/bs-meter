@@ -21,7 +21,7 @@ export default async function GamesPage({
     cover_url: string | null;
     developer: string | null;
     genres: string[];
-    scores: { enjoyment_score: number; bs_score: number; verdict: VerdictKey } | null;
+    scores: { bs_score: number; verdict: VerdictKey } | null;
   }[] = [];
 
   try {
@@ -31,7 +31,7 @@ export default async function GamesPage({
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (enjoyment_score, bs_score, verdict)
+        scores (bs_score, verdict)
       `
       )
       .eq("analysis_status", "complete")
@@ -52,15 +52,17 @@ export default async function GamesPage({
     );
   }
 
-  // Sort by enjoyment score descending
+  // Sort by bs_score ascending (lowest BS = cleanest)
   formattedGames.sort(
-    (a, b) => (b.scores?.enjoyment_score || 0) - (a.scores?.enjoyment_score || 0)
+    (a, b) => (a.scores?.bs_score || 10) - (b.scores?.bs_score || 10)
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-12">
-      <h1 className="mb-2 text-3xl font-bold text-white">Browse Games</h1>
-      <p className="mb-8 text-zinc-400">
+    <div className="mx-auto max-w-[1440px] px-8 py-12">
+      <h1 className="mb-2 text-4xl font-black font-headline tracking-tighter text-on-surface">
+        Browse Games
+      </h1>
+      <p className="mb-8 text-on-surface-variant font-label text-sm">
         {formattedGames.length} games analyzed
       </p>
 
@@ -97,15 +99,18 @@ function FilterChip({
   return (
     <a
       href={href}
-      className={`rounded-full border px-4 py-1.5 text-xs font-medium transition-all ${
-        active
-          ? "border-white bg-white text-black"
-          : "border-zinc-700 text-zinc-400 hover:border-zinc-500 hover:text-white"
-      }`}
+      className="rounded-full border px-4 py-1.5 text-xs font-label font-medium transition-all"
       style={
-        active && color
-          ? { backgroundColor: color, borderColor: color, color: "white" }
-          : undefined
+        active
+          ? {
+              backgroundColor: color || "#3fff8b",
+              borderColor: color || "#3fff8b",
+              color: "#005d2c",
+            }
+          : {
+              borderColor: "#494847",
+              color: "#adaaaa",
+            }
       }
     >
       {label}
