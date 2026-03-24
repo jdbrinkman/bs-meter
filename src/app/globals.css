@@ -56,3 +56,11 @@ body {
   background-color: var(--color-background);
   color: var(--color-on-surface);
 }
+
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
