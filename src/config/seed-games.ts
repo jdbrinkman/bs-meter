@@ -145,6 +145,38 @@ export const SEED_GAMES: SeedGame[] = [
     genreKey: "open-world-rpg",
     hltb: { mainStory: 17, mainExtras: 30, completionist: 52 },
   },
+  {
+    title: "Mass Effect 3",
+    slug: "mass-effect-3",
+    priceUsd: 59.99,
+    genres: ["RPG", "Sci-Fi", "Action"],
+    genreKey: "open-world-rpg",
+    hltb: { mainStory: 17, mainExtras: 35, completionist: 55 },
+  },
+  {
+    title: "Mass Effect: Andromeda",
+    slug: "mass-effect-andromeda",
+    priceUsd: 19.99,
+    genres: ["Open World", "RPG", "Sci-Fi", "Action"],
+    genreKey: "open-world-rpg",
+    hltb: { mainStory: 18, mainExtras: 45, completionist: 90 },
+  },
+  {
+    title: "Diablo IV",
+    slug: "diablo-iv",
+    priceUsd: 69.99,
+    genres: ["Action RPG", "Looter"],
+    genreKey: "open-world-rpg",
+    hltb: { mainStory: 22, mainExtras: 50, completionist: 150 },
+  },
+  {
+    title: "Dragon Age: Inquisition",
+    slug: "dragon-age-inquisition",
+    priceUsd: 19.99,
+    genres: ["Open World", "RPG"],
+    genreKey: "open-world-rpg",
+    hltb: { mainStory: 45, mainExtras: 80, completionist: 125 },
+  },
   // Clock Puncher candidates
   {
     title: "Assassin's Creed Valhalla",
