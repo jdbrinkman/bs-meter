@@ -4,6 +4,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getBSScoreLabel } from "@/lib/scoring/brackets";
+import { GameCarousel } from "@/components/game/GameCarousel";
 import type { VerdictKey } from "@/lib/types";
 
 type GameRow = {
@@ -81,11 +82,11 @@ export default async function HomePage() {
                 See All →
               </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-3 px-8 scrollbar-hide">
+            <GameCarousel>
               {topRated.map((game, i) => (
                 <GameRowCard key={game.slug} game={game} eager={i === 0} />
               ))}
-            </div>
+            </GameCarousel>
           </div>
         </section>
       )}
@@ -108,11 +109,11 @@ export default async function HomePage() {
                 See All →
               </Link>
             </div>
-            <div className="flex gap-4 overflow-x-auto pb-3 px-8 scrollbar-hide">
+            <GameCarousel>
               {mostBloated.map((game, i) => (
                 <GameRowCard key={game.slug} game={game} eager={i === 0} />
               ))}
-            </div>
+            </GameCarousel>
           </div>
         </section>
       )}
