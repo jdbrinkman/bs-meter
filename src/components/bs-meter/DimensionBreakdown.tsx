@@ -1,3 +1,5 @@
+import { RadarChart } from "./RadarChart";
+
 type DimensionBreakdownProps = {
   story_quality: number;
   narrative_investment: number;
@@ -11,93 +13,53 @@ type DimensionBreakdownProps = {
 };
 
 const DIMENSIONS = [
-  {
-    key: "story_quality" as const,
-    label: "Story Quality",
-    description: "Writing, narrative structure, emotional impact",
-  },
-  {
-    key: "narrative_investment" as const,
-    label: "Narrative Investment",
-    description: "How much you care about characters & arcs",
-  },
-  {
-    key: "pacing" as const,
-    label: "Pacing",
-    description: "Does every hour earn its keep?",
-  },
-  {
-    key: "combat_repetition" as const,
-    label: "Combat Variety",
-    description: "Does combat stay fresh throughout?",
-  },
-  {
-    key: "boss_difficulty" as const,
-    label: "Boss Design",
-    description: "Quality, fairness, and memorability of bosses",
-  },
-  {
-    key: "exploration" as const,
-    label: "Exploration",
-    description: "How rewarding is world discovery?",
-  },
-  {
-    key: "polish_bugs" as const,
-    label: "Polish & Stability",
-    description: "Bug-free, stable, technically sound",
-  },
-  {
-    key: "ui_controls" as const,
-    label: "UI & Controls",
-    description: "Intuitive, responsive, gets out of the way",
-  },
-  {
-    key: "atmospheric_depth" as const,
-    label: "Atmosphere",
-    description: "Immersion, world-building, tonal cohesion",
-  },
+  { key: "story_quality" as const,        label: "Story Quality" },
+  { key: "narrative_investment" as const, label: "Narrative Investment" },
+  { key: "pacing" as const,               label: "Pacing" },
+  { key: "combat_repetition" as const,    label: "Combat Variety" },
+  { key: "boss_difficulty" as const,      label: "Boss Design" },
+  { key: "exploration" as const,          label: "Exploration" },
+  { key: "polish_bugs" as const,          label: "Polish & Stability" },
+  { key: "ui_controls" as const,          label: "UI & Controls" },
+  { key: "atmospheric_depth" as const,    label: "Atmosphere" },
 ];
 
-function getBarColor(score: number): string {
-  if (score >= 9) return "bg-blue-500";
-  if (score >= 7) return "bg-green-500";
-  if (score >= 5) return "bg-yellow-500";
-  if (score >= 3) return "bg-orange-500";
-  return "bg-red-500";
+function borderOpacity(score: number): string {
+  if (score >= 9) return "border-primary";
+  if (score >= 7) return "border-primary/60";
+  if (score >= 5) return "border-primary/40";
+  return "border-primary/20";
 }
 
 export function DimensionBreakdown(props: DimensionBreakdownProps) {
+  const sorted = [...DIMENSIONS]
+    .map((d) => ({ ...d, score: props[d.key] }))
+    .sort((a, b) => b.score - a.score);
+
   return (
-    <div className="space-y-3">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-        Dimension Breakdown
-      </h3>
-      {DIMENSIONS.map((dim) => {
-        const score = props[dim.key];
-        return (
-          <div key={dim.key}>
-            <div className="mb-1 flex items-center justify-between">
-              <div>
-                <span className="text-sm font-medium text-white">
-                  {dim.label}
-                </span>
-                <span className="ml-2 text-xs text-zinc-500">
-                  {dim.description}
-                </span>
-              </div>
-              <span className="text-sm font-bold text-white">
-                {score.toFixed(1)}
-              </span>
-            </div>
-            <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
-              <div
-                className={`h-full rounded-full transition-all ${getBarColor(score)}`}
-                style={{ width: `${(score / 10) * 100}%` }}
-              />
-            </div>
+    <div className="flex flex-col lg:flex-row items-center gap-10">
+      {/* Radar Chart */}
+      <div className="relative w-full max-w-sm flex-shrink-0 aspect-square p-4">
+        <RadarChart {...props} />
+        <div className="absolute inset-0 bg-primary/5 rounded-full blur-3xl pointer-events-none" />
+      </div>
+
+      {/* Score list */}
+      <div className="w-full space-y-2">
+        {sorted.map((dim) => (
+          <div
+            key={dim.key}
+            className={`flex justify-between items-center px-3 py-2.5 bg-surface-container-low border-l-4 rounded-r-lg ${borderOpacity(dim.score)}`}
+          >
+            <span className="font-headline font-bold text-sm tracking-tight text-on-surface">
+              {dim.label}
+            </span>
+            <span className="text-primary font-black text-sm tabular-nums">
+              {dim.score.toFixed(1)}
+            </span>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }

@@ -6,7 +6,6 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
 import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
 import { SignalList } from "@/components/bs-meter/SignalList";
-import { EvidenceCard } from "@/components/bs-meter/EvidenceCard";
 import { getBSScoreLabel, getVerdictInfo } from "@/lib/scoring/brackets";
 import type { VerdictKey, GameSignal } from "@/lib/types";
 
@@ -46,15 +45,24 @@ export default async function GameDetailPage({
   const bsLabel = score ? getBSScoreLabel(score.bs_score) : null;
   const verdictInfo = score ? getVerdictInfo(score.verdict as VerdictKey) : null;
 
+  // Determine audit status label
+  const auditStatus =
+    score && score.bs_score <= 3
+      ? "VERIFIED CLEAN"
+      : score && score.bs_score >= 7
+      ? "HIGH BS DETECTED"
+      : "AUDITED";
+
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen bg-background">
+
       {/* ── HERO ── */}
-      <div className="border-b border-zinc-800 bg-zinc-950 px-4 py-10">
-        <div className="mx-auto max-w-5xl">
-          <div className="flex flex-col gap-8 md:flex-row md:items-start">
+      <section className="px-6 md:px-8 py-12 md:py-16 border-b border-outline-variant/10 bg-surface-container-low">
+        <div className="mx-auto max-w-[1440px]">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
 
             {/* Cover image */}
-            <div className="relative aspect-[3/4] w-44 flex-shrink-0 overflow-hidden rounded-xl bg-zinc-800 shadow-2xl md:w-52">
+            <div className="relative aspect-[3/4] w-44 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-high shadow-2xl md:w-52">
               {game.cover_url ? (
                 <Image
                   src={game.cover_url}
@@ -64,13 +72,13 @@ export default async function GameDetailPage({
                   priority
                 />
               ) : (
-                <div className="flex h-full items-center justify-center text-zinc-600">
+                <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
                   No Cover
                 </div>
               )}
             </div>
 
-            {/* Game info — grows to fill space */}
+            {/* Game info — grows to fill */}
             <div className="flex min-w-0 flex-1 flex-col justify-between gap-6">
               {/* Genre tags */}
               {game.genres?.length > 0 && (
@@ -78,7 +86,7 @@ export default async function GameDetailPage({
                   {game.genres.map((genre: string) => (
                     <span
                       key={genre}
-                      className="rounded-md border border-zinc-700 px-2 py-0.5 text-xs font-semibold uppercase tracking-wider text-zinc-400"
+                      className="bg-surface-container-high px-3 py-1 rounded-md text-xs font-label text-on-surface-variant tracking-widest uppercase"
                     >
                       {genre}
                     </span>
@@ -87,30 +95,30 @@ export default async function GameDetailPage({
               )}
 
               {/* Title */}
-              <h1 className="text-4xl font-black uppercase tracking-tight text-white md:text-5xl">
+              <h1 className="text-5xl font-black uppercase tracking-tighter text-on-surface font-headline md:text-7xl leading-none">
                 {game.title}
               </h1>
 
               {/* Metadata grid */}
-              <div className="grid grid-cols-2 gap-x-6 gap-y-3 md:grid-cols-3">
+              <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 border-y border-outline-variant/15 md:grid-cols-4">
                 {game.developer && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
                       Developer
                     </p>
-                    <p className="mt-0.5 text-sm font-medium text-white">
+                    <p className="font-headline font-bold text-base text-on-surface">
                       {game.developer}
                     </p>
                   </div>
                 )}
                 {game.release_date && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
                       Release Date
                     </p>
-                    <p className="mt-0.5 text-sm font-medium text-white">
+                    <p className="font-headline font-bold text-base text-on-surface">
                       {new Date(game.release_date).toLocaleDateString("en-US", {
-                        month: "long",
+                        month: "short",
                         day: "numeric",
                         year: "numeric",
                       })}
@@ -119,11 +127,21 @@ export default async function GameDetailPage({
                 )}
                 {game.price_usd && (
                   <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-zinc-500">
+                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
                       Price
                     </p>
-                    <p className="mt-0.5 text-sm font-medium text-green-400">
+                    <p className="font-headline font-bold text-base text-primary">
                       ${game.price_usd}
+                    </p>
+                  </div>
+                )}
+                {(game.platforms?.length > 0) && (
+                  <div>
+                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                      Platform
+                    </p>
+                    <p className="font-headline font-bold text-base text-on-surface">
+                      {game.platforms?.slice(0, 2).join(" / ")}
                     </p>
                   </div>
                 )}
@@ -131,151 +149,231 @@ export default async function GameDetailPage({
 
               {/* Verdict badge */}
               {score && (
-                <div>
+                <div className="flex items-center gap-4">
                   <ScoreBracketBadge bracket={score.verdict as VerdictKey} />
+                  {score.genre_rule_applied && (
+                    <span className="text-xs font-label text-outline">
+                      {score.genre_rule_applied} weights
+                    </span>
+                  )}
                 </div>
               )}
             </div>
 
-            {/* BS Score Card */}
+            {/* BS Score circle */}
             {score && bsLabel && verdictInfo && (
-              <div
-                className="w-full flex-shrink-0 rounded-2xl border bg-zinc-950 p-6 text-center md:w-56"
-                style={{
-                  borderColor: `${bsLabel.color}40`,
-                  boxShadow: `0 0 48px ${bsLabel.color}18`,
-                }}
-              >
-                <p className="mb-4 text-xs font-bold uppercase tracking-widest text-zinc-500">
-                  BS Meter Score
-                </p>
-
-                {/* Big BS number */}
-                <div
-                  className="mb-1 text-7xl font-black tabular-nums leading-none"
-                  style={{ color: bsLabel.color }}
-                >
-                  {score.bs_score.toFixed(1)}
-                </div>
-                <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-zinc-600">
-                  /10
-                </p>
-
-                <div className="my-4 border-t border-zinc-800" />
-
-                <p className="text-xs font-semibold uppercase tracking-widest text-zinc-500">
-                  Friction Level
-                </p>
-                <p
-                  className="mt-1 text-base font-bold"
-                  style={{ color: bsLabel.color }}
-                >
-                  {bsLabel.label}
-                </p>
-
-                {/* Confidence */}
-                {score.confidence && (
-                  <div className="mt-4 rounded-lg bg-zinc-900 px-3 py-2">
-                    <p className="text-xs text-zinc-500">Confidence</p>
-                    <p className="text-sm font-semibold text-white">
-                      {(score.confidence * 100).toFixed(0)}%
+              <div className="flex flex-col items-center flex-shrink-0">
+                <div className="relative group">
+                  {/* Glow */}
+                  <div
+                    className="absolute inset-0 blur-[80px] rounded-full opacity-30 group-hover:opacity-50 transition-all duration-500"
+                    style={{ backgroundColor: bsLabel.color }}
+                  />
+                  {/* Circle */}
+                  <div
+                    className="relative w-56 h-56 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center bg-surface/60 backdrop-blur-xl"
+                    style={{
+                      border: `8px solid ${bsLabel.color}`,
+                      boxShadow: `0 0 60px ${bsLabel.color}20`,
+                    }}
+                  >
+                    <p className="absolute top-8 text-[9px] font-label uppercase tracking-[0.25em] text-on-surface-variant">
+                      BS Meter Score
                     </p>
+                    <div
+                      className="text-7xl md:text-8xl font-black font-headline leading-none tabular-nums"
+                      style={{ color: bsLabel.color }}
+                    >
+                      {score.bs_score.toFixed(1)}
+                    </div>
+                    <div className="absolute bottom-10 flex flex-col items-center">
+                      <span className="text-[9px] font-label text-on-surface-variant tracking-widest uppercase mb-0.5">
+                        Friction Level
+                      </span>
+                      <span
+                        className="text-base font-headline font-bold"
+                        style={{ color: bsLabel.color }}
+                      >
+                        {bsLabel.label}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Confidence chip */}
+                  {score.confidence && (
+                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-surface-container px-4 py-2 rounded-xl border border-outline-variant/20 backdrop-blur-md whitespace-nowrap">
+                      <div className="flex items-center gap-2">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45fec9" strokeWidth={2.5}>
+                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+                          <polyline points="22 4 12 14.01 9 11.01"/>
+                        </svg>
+                        <span className="text-xs font-headline font-bold text-on-surface">
+                          {(score.confidence * 100).toFixed(0)}% Confidence
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* OpenCritic score below */}
+                {game.opencritic_score && (
+                  <div className="mt-10 text-center">
+                    <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                      OpenCritic
+                    </p>
+                    <p className="text-2xl font-black font-headline text-on-surface">
+                      {game.opencritic_score}
+                      <span className="text-sm font-normal text-outline">/100</span>
+                    </p>
+                    {game.opencritic_tier && (
+                      <p className="text-[10px] font-label text-outline mt-0.5">{game.opencritic_tier}</p>
+                    )}
                   </div>
                 )}
-
-                {/* Enjoyment score — secondary */}
-                <div className="mt-3 border-t border-zinc-800 pt-3">
-                  <p className="text-xs text-zinc-600">Enjoyment Score</p>
-                  <p className="text-lg font-bold text-zinc-300">
-                    {score.enjoyment_score}
-                    <span className="text-xs font-normal text-zinc-600">/100</span>
-                  </p>
-                </div>
               </div>
             )}
           </div>
         </div>
-      </div>
+      </section>
 
-      {/* ── BODY ── */}
-      <div className="mx-auto max-w-5xl px-4 py-12">
+      {/* ── AUDIT REPORT ── */}
+      {score && (
+        <section className="mx-auto max-w-[1440px] px-6 md:px-8 py-16">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
+            <div className="max-w-2xl">
+              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
+                The Audit Report
+              </h2>
+              {score.summary && (
+                <p className="text-on-surface-variant font-body leading-relaxed">
+                  {score.summary}
+                </p>
+              )}
+            </div>
+            <div className="flex-shrink-0 text-right">
+              <span className="text-[10px] font-label uppercase tracking-widest text-primary mb-2 block">
+                Audit Status
+              </span>
+              <span
+                className="px-4 py-2 border rounded-lg font-headline font-bold text-sm"
+                style={{
+                  color: bsLabel?.color,
+                  borderColor: `${bsLabel?.color}40`,
+                  backgroundColor: `${bsLabel?.color}10`,
+                }}
+              >
+                {auditStatus}
+              </span>
+            </div>
+          </div>
 
-        {/* Why This Score */}
-        {score && (
-          <div className="mb-10">
-            <EvidenceCard
-              summary={score.summary}
-              topReasons={score.top_reasons}
+          {/* Top reasons as cards */}
+          {score.top_reasons && score.top_reasons.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {score.top_reasons.slice(0, 3).map((reason: string, i: number) => (
+                <div
+                  key={i}
+                  className="p-6 bg-surface-container hover:bg-surface-container-high transition-all rounded-2xl"
+                >
+                  <div
+                    className="w-8 h-8 rounded-full flex items-center justify-center mb-4 text-sm font-black font-headline"
+                    style={{
+                      backgroundColor: `${bsLabel?.color}20`,
+                      color: bsLabel?.color,
+                    }}
+                  >
+                    {i + 1}
+                  </div>
+                  <p className="text-on-surface-variant font-body text-sm leading-relaxed">
+                    {reason}
+                  </p>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      {/* ── DIMENSION BREAKDOWN ── */}
+      {score && (
+        <section className="bg-surface-container-low py-16 px-6 md:px-8">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
+                Dimension Breakdown
+              </h2>
+              <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
+            </div>
+            <DimensionBreakdown
+              story_quality={score.story_quality_score}
+              narrative_investment={score.narrative_investment_score}
+              pacing={score.pacing_score}
+              combat_repetition={score.combat_repetition_score}
+              boss_difficulty={score.boss_difficulty_score}
+              exploration={score.exploration_score}
+              polish_bugs={score.polish_bugs_score}
+              ui_controls={score.ui_controls_score}
+              atmospheric_depth={score.atmospheric_depth_score}
             />
           </div>
-        )}
+        </section>
+      )}
 
-        {/* Two-column: Dimensions + Time */}
-        <div className="grid gap-8 md:grid-cols-2">
-          {score && (
-            <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-              <DimensionBreakdown
-                story_quality={score.story_quality_score}
-                narrative_investment={score.narrative_investment_score}
-                pacing={score.pacing_score}
-                combat_repetition={score.combat_repetition_score}
-                boss_difficulty={score.boss_difficulty_score}
-                exploration={score.exploration_score}
-                polish_bugs={score.polish_bugs_score}
-                ui_controls={score.ui_controls_score}
-                atmospheric_depth={score.atmospheric_depth_score}
-              />
+      {/* ── BODY ── */}
+      <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">
+
+        {/* Time to Beat + Critics side by side */}
+        <div className="grid gap-6 md:grid-cols-2">
+          {(game.main_story_hours || game.main_extras_hours || game.completionist_hours) && (
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
+              <h3 className="mb-5 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+                Time to Beat
+              </h3>
+              <div className="space-y-3">
+                <TimeBar
+                  label="Main Story"
+                  hours={game.main_story_hours}
+                  maxHours={game.completionist_hours || 100}
+                  color="#3fff8b"
+                />
+                <TimeBar
+                  label="Main + Extras"
+                  hours={game.main_extras_hours}
+                  maxHours={game.completionist_hours || 100}
+                  color="#45fec9"
+                />
+                <TimeBar
+                  label="Completionist"
+                  hours={game.completionist_hours}
+                  maxHours={game.completionist_hours || 100}
+                  color="#adaaaa"
+                />
+              </div>
+              {game.main_story_hours && game.completionist_hours && (
+                <p className="mt-4 text-xs text-outline font-label">
+                  Bloat Ratio: {(game.main_story_hours / game.completionist_hours).toFixed(2)}{" "}
+                  —{" "}
+                  {game.completionist_hours / game.main_story_hours > 3
+                    ? "Significant padding detected"
+                    : "Reasonable content spread"}
+                </p>
+              )}
             </div>
           )}
 
-          <div className="rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-400">
-              Time to Beat
-            </h3>
-            <div className="space-y-3">
-              <TimeBar
-                label="Main Story"
-                hours={game.main_story_hours}
-                maxHours={game.completionist_hours || 100}
-                color="bg-blue-500"
-              />
-              <TimeBar
-                label="Main + Extras"
-                hours={game.main_extras_hours}
-                maxHours={game.completionist_hours || 100}
-                color="bg-green-500"
-              />
-              <TimeBar
-                label="Completionist"
-                hours={game.completionist_hours}
-                maxHours={game.completionist_hours || 100}
-                color="bg-orange-500"
-              />
-            </div>
-            {game.main_story_hours && game.completionist_hours && (
-              <p className="mt-4 text-xs text-zinc-500">
-                Bloat Ratio:{" "}
-                {(game.main_story_hours / game.completionist_hours).toFixed(2)}{" "}
-                —{" "}
-                {game.completionist_hours / game.main_story_hours > 3
-                  ? "Significant padding detected"
-                  : "Reasonable content spread"}
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Signals */}
         {signals.length > 0 && (
-          <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
+          <div className="mt-6 rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
             <SignalList signals={signals} />
           </div>
         )}
 
         {/* Review Sources */}
         {reviewSources.length > 0 && (
-          <div className="mt-8">
-            <h3 className="mb-4 text-sm font-semibold uppercase tracking-wider text-zinc-400">
+          <div className="mt-6">
+            <h3 className="mb-3 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
               Sources Analyzed
             </h3>
             <div className="flex flex-wrap gap-2">
@@ -291,7 +389,7 @@ export default async function GameDetailPage({
                     href={rs.url || "#"}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="rounded-lg border border-zinc-800 bg-zinc-900 px-3 py-2 text-xs text-zinc-400 transition-colors hover:border-zinc-600 hover:text-white"
+                    className="rounded-xl border border-outline-variant/20 bg-surface-container px-3 py-2 text-xs text-on-surface-variant font-label transition-colors hover:border-outline-variant hover:text-on-surface"
                     title={rs.video_title || undefined}
                   >
                     {rs.channel_name || "Review Source"}
@@ -302,44 +400,14 @@ export default async function GameDetailPage({
           </div>
         )}
 
-        {/* Critics vs BS Meter */}
-        {score && game.opencritic_score && (
-          <div className="mt-8 rounded-xl border border-zinc-800 bg-zinc-900 p-6">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wider text-zinc-400">
-              Critics vs BS Meter
-            </h3>
-            <div className="flex items-center gap-8">
-              <div>
-                <p className="text-xs text-zinc-500">OpenCritic</p>
-                <p className="text-2xl font-bold text-white">
-                  {game.opencritic_score}/100
-                </p>
-                <p className="text-xs text-zinc-500">{game.opencritic_tier}</p>
-              </div>
-              <div className="text-2xl text-zinc-700">vs</div>
-              <div>
-                <p className="text-xs text-zinc-500">BS Meter Enjoyment</p>
-                <p className="text-2xl font-bold text-white">
-                  {score.enjoyment_score}/100
-                </p>
-                <p className="text-xs text-zinc-500">
-                  {score.verdict.replace(/-/g, " ")}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Footer meta */}
         {score && (
-          <div className="mt-10 text-center text-xs text-zinc-600">
+          <div className="mt-10 text-center text-xs text-outline font-label">
             Analyzed{" "}
             {game.analyzed_at
               ? new Date(game.analyzed_at).toLocaleDateString()
               : "recently"}{" "}
-            using {score.model_version}
-            {score.genre_rule_applied &&
-              ` · ${score.genre_rule_applied} genre weights`}
+            · {score.model_version}
           </div>
         )}
       </div>
@@ -363,14 +431,14 @@ function TimeBar({
 
   return (
     <div>
-      <div className="mb-1 flex justify-between text-xs">
-        <span className="text-zinc-300">{label}</span>
-        <span className="text-zinc-500">{hours.toFixed(0)}h</span>
+      <div className="mb-1.5 flex justify-between text-xs">
+        <span className="text-on-surface font-body">{label}</span>
+        <span className="text-on-surface-variant font-label tabular-nums">{hours.toFixed(0)}h</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-zinc-800">
+      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
         <div
-          className={`h-full rounded-full ${color}`}
-          style={{ width: `${pct}%` }}
+          className="h-full rounded-full transition-all"
+          style={{ width: `${pct}%`, backgroundColor: color }}
         />
       </div>
     </div>

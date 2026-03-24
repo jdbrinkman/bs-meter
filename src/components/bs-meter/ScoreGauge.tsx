@@ -1,69 +1,83 @@
-import { getVerdictInfo, getBSScoreLabel } from "@/lib/scoring/brackets";
-import type { VerdictKey } from "@/lib/types";
+import { getBSScoreLabel } from "@/lib/scoring/brackets";
 
 type ScoreGaugeProps = {
-  enjoymentScore: number;
   bsScore: number;
-  verdict: VerdictKey;
   size?: "sm" | "md" | "lg";
 };
 
-export function ScoreGauge({
-  enjoymentScore,
-  bsScore,
-  verdict,
-  size = "md",
-}: ScoreGaugeProps) {
-  const verdictInfo = getVerdictInfo(verdict);
+export function ScoreGauge({ bsScore, size = "md" }: ScoreGaugeProps) {
   const bsLabel = getBSScoreLabel(bsScore);
 
-  const enjoymentSizeClasses = {
-    sm: "h-16 w-16 text-xl",
-    md: "h-24 w-24 text-3xl",
-    lg: "h-32 w-32 text-4xl",
-  };
-
-  const bsSizeClasses = {
-    sm: "h-10 w-10 text-sm",
-    md: "h-16 w-16 text-lg",
-    lg: "h-20 w-20 text-2xl",
-  };
-
-  const labelClasses = {
-    sm: "text-[10px]",
-    md: "text-xs",
-    lg: "text-sm",
-  };
-
-  return (
-    <div className="flex items-end gap-4">
-      {/* Enjoyment Score — primary */}
-      <div className="flex flex-col items-center gap-1">
+  if (size === "sm") {
+    return (
+      <div className="flex flex-col items-end gap-0.5 flex-shrink-0">
         <div
-          className={`${enjoymentSizeClasses[size]} flex items-center justify-center rounded-full border-4 font-black`}
-          style={{ borderColor: verdictInfo.color, color: verdictInfo.color }}
+          className="rounded-lg px-2 py-1 border text-right"
+          style={{
+            borderColor: `${bsLabel.color}40`,
+            backgroundColor: `${bsLabel.color}12`,
+          }}
         >
-          {enjoymentScore}
+          <span
+            className="text-lg font-black font-headline tabular-nums leading-none"
+            style={{ color: bsLabel.color }}
+          >
+            {bsScore.toFixed(1)}
+          </span>
         </div>
-        <span className={`${labelClasses[size]} text-zinc-400`}>/100</span>
-        <span
-          className={`${labelClasses[size]} font-semibold`}
-          style={{ color: verdictInfo.color }}
-        >
-          {verdictInfo.label}
+        <span className="text-[10px] font-label text-on-surface-variant pr-0.5">
+          BS /10
         </span>
       </div>
+    );
+  }
 
-      {/* BS Score — secondary */}
-      <div className="flex flex-col items-center gap-1 mb-4">
+  if (size === "md") {
+    return (
+      <div className="flex flex-col items-center gap-1">
         <div
-          className={`${bsSizeClasses[size]} flex items-center justify-center rounded-full border-2 font-bold`}
-          style={{ borderColor: bsLabel.color, color: bsLabel.color }}
+          className="rounded-xl px-4 py-2 border"
+          style={{
+            borderColor: `${bsLabel.color}40`,
+            backgroundColor: `${bsLabel.color}12`,
+          }}
+        >
+          <span
+            className="text-3xl font-black font-headline tabular-nums"
+            style={{ color: bsLabel.color }}
+          >
+            {bsScore.toFixed(1)}
+          </span>
+        </div>
+        <span className="text-xs font-label text-on-surface-variant">BS /10</span>
+        <span className="text-xs font-label font-semibold" style={{ color: bsLabel.color }}>
+          {bsLabel.label}
+        </span>
+      </div>
+    );
+  }
+
+  // lg
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <div
+        className="rounded-2xl px-6 py-3 border"
+        style={{
+          borderColor: `${bsLabel.color}40`,
+          backgroundColor: `${bsLabel.color}12`,
+        }}
+      >
+        <span
+          className="text-5xl font-black font-headline tabular-nums"
+          style={{ color: bsLabel.color }}
         >
           {bsScore.toFixed(1)}
-        </div>
-        <span className={`${labelClasses[size]} text-zinc-400`}>BS /10</span>
+        </span>
       </div>
+      <span className="text-sm font-label text-on-surface-variant">BS /10</span>
+      <span className="text-sm font-label font-semibold" style={{ color: bsLabel.color }}>
+        {bsLabel.label}
+      </span>
     </div>
   );
 }
