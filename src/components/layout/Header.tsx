@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { SearchOverlay } from "@/components/search/SearchOverlay";
 
 const NAV_LINKS = [
   { href: "/", label: "Home" },
@@ -11,8 +13,10 @@ const NAV_LINKS = [
 
 export function Header() {
   const pathname = usePathname();
+  const [isSearchOpen, setIsSearchOpen] = useState(false);
 
   return (
+    <>
     <header className="fixed top-0 w-full z-50 bg-background/70 backdrop-blur-xl border-b border-outline-variant/10">
       <div className="flex justify-between items-center px-8 h-20 max-w-[1440px] mx-auto">
         {/* Logo */}
@@ -42,7 +46,10 @@ export function Header() {
 
         {/* Icons */}
         <div className="flex items-center gap-2">
-          <button className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg">
+          <button
+            className="p-2 text-on-surface-variant hover:text-primary transition-colors rounded-lg"
+            onClick={() => setIsSearchOpen(true)}
+          >
             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <circle cx="11" cy="11" r="8" />
               <path d="m21 21-4.35-4.35" />
@@ -57,5 +64,7 @@ export function Header() {
         </div>
       </div>
     </header>
+    <SearchOverlay isOpen={isSearchOpen} onClose={() => setIsSearchOpen(false)} />
+    </>
   );
 }
