@@ -192,4 +192,19 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Open World", "Action", "Adventure"],
     genreKey: "open-world-rpg",
   },
+  {
+    title: "Mio: Memories in Orbit",
+    slug: "mio-memories-in-orbit",
+    priceUsd: 29.99,
+    genres: ["Adventure", "Narrative"],
+    genreKey: "puzzle-narrative",
+  },
+  {
+    title: "Hollow Knight: Silksong",
+    slug: "hollow-knight-silksong",
+    priceUsd: 19.99,
+    genres: ["Metroidvania", "Indie", "Platformer"],
+    genreKey: "platformer-metroidvania",
+    hltb: { mainStory: 25, mainExtras: 40, completionist: 65 },
+  },
 ];
