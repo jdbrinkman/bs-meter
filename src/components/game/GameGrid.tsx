@@ -1,5 +1,5 @@
 import { GameCard } from "./GameCard";
-import type { BracketKey } from "@/lib/types";
+import type { VerdictKey } from "@/lib/types";
 
 type GameGridItem = {
   slug: string;
@@ -8,8 +8,9 @@ type GameGridItem = {
   developer: string | null;
   genres: string[];
   scores: {
+    enjoyment_score: number;
     bs_score: number;
-    bracket: BracketKey;
+    verdict: VerdictKey;
   } | null;
 };
 
@@ -36,8 +37,9 @@ export function GameGrid({ games }: GameGridProps) {
           coverUrl={game.cover_url}
           developer={game.developer}
           genres={game.genres}
-          score={game.scores?.bs_score ?? null}
-          bracket={game.scores?.bracket ?? null}
+          enjoymentScore={game.scores?.enjoyment_score ?? null}
+          bsScore={game.scores?.bs_score ?? null}
+          verdict={game.scores?.verdict ?? null}
         />
       ))}
     </div>

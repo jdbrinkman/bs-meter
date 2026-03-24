@@ -2,8 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GameGrid } from "@/components/game/GameGrid";
-import { BRACKETS } from "@/lib/scoring/brackets";
-import type { BracketKey } from "@/lib/types";
+import { VERDICTS } from "@/lib/scoring/brackets";
+import type { VerdictKey } from "@/lib/types";
 
 type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
 
@@ -13,24 +13,29 @@ export default async function GamesPage({
   searchParams: SearchParams;
 }) {
   const params = await searchParams;
-  const bracket = params.bracket as string | undefined;
+  const verdict = params.verdict as string | undefined;
 
-  let formattedGames: { slug: string; title: string; cover_url: string | null; developer: string | null; genres: string[]; scores: { bs_score: number; bracket: BracketKey } | null }[] = [];
+  let formattedGames: {
+    slug: string;
+    title: string;
+    cover_url: string | null;
+    developer: string | null;
+    genres: string[];
+    scores: { enjoyment_score: number; bs_score: number; verdict: VerdictKey } | null;
+  }[] = [];
 
   try {
     const supabase = createAdminClient();
-    const query = supabase
+    const { data: games } = await supabase
       .from("games")
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (bs_score, bracket)
+        scores (enjoyment_score, bs_score, verdict)
       `
       )
       .eq("analysis_status", "complete")
       .order("analyzed_at", { ascending: false });
-
-    const { data: games } = await query;
 
     formattedGames = (games || []).map((g) => ({
       ...g,
@@ -40,16 +45,16 @@ export default async function GamesPage({
     // Supabase not configured yet
   }
 
-  // Client-side bracket filter (since we can't filter on joined tables easily)
-  if (bracket) {
+  // Filter by verdict
+  if (verdict) {
     formattedGames = formattedGames.filter(
-      (g) => g.scores?.bracket === bracket
+      (g) => g.scores?.verdict === verdict
     );
   }
 
-  // Sort by score descending
+  // Sort by enjoyment score descending
   formattedGames.sort(
-    (a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0)
+    (a, b) => (b.scores?.enjoyment_score || 0) - (a.scores?.enjoyment_score || 0)
   );
 
   return (
@@ -59,16 +64,16 @@ export default async function GamesPage({
         {formattedGames.length} games analyzed
       </p>
 
-      {/* Bracket Filters */}
+      {/* Verdict Filters */}
       <div className="mb-8 flex flex-wrap gap-2">
-        <FilterChip href="/games" label="All" active={!bracket} />
-        {(Object.keys(BRACKETS) as BracketKey[]).map((key) => (
+        <FilterChip href="/games" label="All" active={!verdict} />
+        {(Object.keys(VERDICTS) as VerdictKey[]).map((key) => (
           <FilterChip
             key={key}
-            href={`/games?bracket=${key}`}
-            label={BRACKETS[key].label}
-            color={BRACKETS[key].color}
-            active={bracket === key}
+            href={`/games?verdict=${key}`}
+            label={VERDICTS[key].label}
+            color={VERDICTS[key].color}
+            active={verdict === key}
           />
         ))}
       </div>

@@ -1,85 +1,275 @@
+export type GenreWeights = {
+  story_quality: number;
+  narrative_investment: number;
+  pacing: number;
+  combat_repetition: number;
+  boss_difficulty: number;
+  exploration: number;
+  polish_bugs: number;
+  ui_controls: number;
+  atmospheric_depth: number;
+};
+
 export type GenreRule = {
   key: string;
   displayName: string;
-  weights: {
-    pacing: number;
-    bloat: number;
-    value: number;
-    grind: number;
-  };
+  weights: GenreWeights;
+  narrativeCap: boolean; // if true, enjoyment_score capped at 87
   aiGuidance: string;
 };
 
 export const GENRE_RULES: Record<string, GenreRule> = {
-  default: {
-    key: "default",
-    displayName: "Default",
-    weights: { pacing: 0.4, bloat: 0.3, value: 0.2, grind: 0.1 },
+  "narrative-rpg": {
+    key: "narrative-rpg",
+    displayName: "Narrative RPG",
+    narrativeCap: false,
+    weights: {
+      story_quality: 1.00,
+      narrative_investment: 1.00,
+      pacing: 1.00,
+      combat_repetition: 0.85,
+      boss_difficulty: 0.60,
+      atmospheric_depth: 0.80,
+      exploration: 0.45,
+      polish_bugs: 0.25,
+      ui_controls: 0.20,
+    },
     aiGuidance:
-      "Evaluate this game using standard criteria. Balance all four pillars equally with the default weighting.",
+      "Story and narrative investment are the primary pillars. A weak story is fatal regardless of combat quality. Penalize filler that pads runtime without advancing the narrative. Combat is important but secondary to storytelling.",
   },
-  "open-world-rpg": {
-    key: "open-world-rpg",
-    displayName: "Open-World RPG",
-    weights: { pacing: 0.3, bloat: 0.4, value: 0.15, grind: 0.15 },
+  soulslike: {
+    key: "soulslike",
+    displayName: "Soulslike",
+    narrativeCap: false,
+    weights: {
+      boss_difficulty: 1.00,
+      combat_repetition: 1.00,
+      atmospheric_depth: 0.80,
+      pacing: 0.80,
+      polish_bugs: 0.60,
+      story_quality: 0.40,
+      narrative_investment: 0.35,
+      exploration: 0.35,
+      ui_controls: 0.25,
+    },
     aiGuidance:
-      "For open-world RPGs, penalize checklist filler and repetitive side content heavily. Do NOT penalize large world size alone — only penalize if the world is hollow or padded. Map vomit and fetch-quest overload are the primary BS signals to watch for.",
+      "Boss design and combat variety are paramount. Difficulty through death is expected — do NOT penalize this. Penalize unfair hitboxes, HP sponge enemies, and excessive run-backs to bosses. Atmospheric storytelling (environmental, cryptic) fully counts as narrative investment — do not require explicit dialogue.",
+  },
+  "soulslike-blended": {
+    key: "soulslike-blended",
+    displayName: "Soulslike Blended",
+    narrativeCap: false,
+    weights: {
+      combat_repetition: 0.94,
+      boss_difficulty: 0.88,
+      pacing: 0.88,
+      atmospheric_depth: 0.75,
+      story_quality: 0.64,
+      narrative_investment: 0.61,
+      polish_bugs: 0.46,
+      exploration: 0.39,
+      ui_controls: 0.23,
+    },
+    aiGuidance:
+      "This genre blends soulslike combat with genuine narrative investment (Lies of P, Stellar Blade). Both combat excellence AND story quality matter. Penalize weak narrative in games that clearly aspire to tell a story, and penalize poor boss design equally.",
+  },
+  "action-adventure": {
+    key: "action-adventure",
+    displayName: "Action Adventure",
+    narrativeCap: false,
+    weights: {
+      pacing: 0.90,
+      story_quality: 0.85,
+      narrative_investment: 0.85,
+      atmospheric_depth: 0.80,
+      combat_repetition: 0.80,
+      boss_difficulty: 0.55,
+      exploration: 0.55,
+      polish_bugs: 0.35,
+      ui_controls: 0.30,
+    },
+    aiGuidance:
+      "Pacing and narrative are co-equal priorities. Combat should feel fresh throughout. Penalize repetitive encounter design and filler that interrupts the story flow. A tight authored experience scores higher than a bloated open-world expansion.",
   },
   roguelike: {
     key: "roguelike",
     displayName: "Roguelike",
-    weights: { pacing: 0.35, bloat: 0.15, value: 0.25, grind: 0.25 },
+    narrativeCap: false,
+    weights: {
+      combat_repetition: 1.00,
+      narrative_investment: 0.85,
+      atmospheric_depth: 0.80,
+      story_quality: 0.75,
+      pacing: 0.70,
+      boss_difficulty: 0.65,
+      polish_bugs: 0.40,
+      exploration: 0.35,
+      ui_controls: 0.25,
+    },
     aiGuidance:
-      "For roguelikes, repetition is a core design feature — do NOT penalize replay loops. Instead, penalize forced meta-progression grind that gates content. Focus on whether each run feels fresh and rewarding, and whether the meta-grind feels earned or forced.",
+      "Repetition through runs is a core feature — do NOT penalize replay loops. Penalize forced meta-progression grind that gates content behind tedious unlocks. Each run should feel fresh and rewarding. Narrative revealed through runs fully counts — judge story_quality on total narrative depth over all runs.",
   },
-  survival: {
-    key: "survival",
-    displayName: "Survival",
-    weights: { pacing: 0.25, bloat: 0.3, value: 0.2, grind: 0.25 },
+  "roguelike-atmospheric": {
+    key: "roguelike-atmospheric",
+    displayName: "Roguelike + Atmospheric",
+    narrativeCap: false,
+    weights: {
+      combat_repetition: 1.00,
+      narrative_investment: 0.85,
+      atmospheric_depth: 0.80,
+      story_quality: 0.75,
+      pacing: 0.70,
+      boss_difficulty: 0.65,
+      polish_bugs: 0.40,
+      exploration: 0.35,
+      ui_controls: 0.25,
+    },
     aiGuidance:
-      "For survival games, resource gathering and base building are core gameplay — do NOT penalize these. Instead, penalize material grind walls that block progression, excessive crafting requirements, and artificial scarcity designed to pad playtime.",
+      "Like roguelike but atmosphere is the primary narrative delivery mechanism (Returnal, Saros). Cryptic environmental and world-based storytelling counts as FULL narrative investment — do not penalize for lack of explicit dialogue. Judge story_quality on the emotional and atmospheric impact of the world, not cutscene volume.",
   },
-  "horror-action": {
-    key: "horror-action",
-    displayName: "Horror / Action",
-    weights: { pacing: 0.5, bloat: 0.2, value: 0.2, grind: 0.1 },
+  "platformer-metroidvania": {
+    key: "platformer-metroidvania",
+    displayName: "Platformer / Metroidvania",
+    narrativeCap: false,
+    weights: {
+      pacing: 1.00,
+      story_quality: 0.90,
+      narrative_investment: 0.90,
+      exploration: 0.85,
+      atmospheric_depth: 0.70,
+      polish_bugs: 0.60,
+      ui_controls: 0.55,
+      combat_repetition: 0.40,
+      boss_difficulty: 0.40,
+    },
     aiGuidance:
-      "For horror and action games, pacing is king. Heavily weight authored density — every encounter and area should feel intentional. Penalize padding, unnecessary backtracking, and anything that breaks tension or flow. A tight 10-15 hour experience should score higher than a padded 40-hour one.",
+      "Pacing and exploration are the heart of this genre. Backtracking with new abilities is a core mechanic — do NOT penalize intentional revisiting. Penalize filler between meaningful upgrades and areas that feel empty. Wordless atmospheric storytelling counts fully as narrative investment.",
   },
-  jrpg: {
-    key: "jrpg",
-    displayName: "JRPG",
-    weights: { pacing: 0.35, bloat: 0.25, value: 0.25, grind: 0.15 },
+  "puzzle-narrative": {
+    key: "puzzle-narrative",
+    displayName: "Puzzle / Narrative",
+    narrativeCap: false,
+    weights: {
+      story_quality: 1.00,
+      narrative_investment: 1.00,
+      pacing: 0.95,
+      atmospheric_depth: 0.70,
+      polish_bugs: 0.50,
+      exploration: 0.45,
+      ui_controls: 0.30,
+      combat_repetition: 0.10,
+      boss_difficulty: 0.10,
+    },
     aiGuidance:
-      "For JRPGs, longer playtimes are expected and acceptable — do NOT penalize length alone. Instead, penalize filler padding: repetitive dungeons, excessive random encounters, and story segments that don't advance the narrative. Walk-and-talk downtime is more tolerable in this genre if the story is compelling.",
+      "Story and intellectual engagement are everything. Combat is nearly irrelevant. Penalize puzzles that feel arbitrary or block narrative flow without purpose. Pacing through puzzle difficulty is important — the game should challenge without frustrating.",
   },
-  "souls-like": {
-    key: "souls-like",
-    displayName: "Souls-like",
-    weights: { pacing: 0.3, bloat: 0.2, value: 0.2, grind: 0.3 },
+  "pure-gameplay": {
+    key: "pure-gameplay",
+    displayName: "Pure Gameplay",
+    narrativeCap: true, // max enjoyment_score = 87
+    weights: {
+      combat_repetition: 1.00,
+      pacing: 0.95,
+      boss_difficulty: 0.80,
+      exploration: 0.75,
+      polish_bugs: 0.65,
+      ui_controls: 0.60,
+      atmospheric_depth: 0.20,
+      story_quality: 0.10,
+      narrative_investment: 0.10,
+    },
     aiGuidance:
-      "For Souls-likes, difficulty and repetition through death are core features — do NOT penalize these. Penalize artificial difficulty walls (unfair hitboxes, HP sponge bosses), forced grinding for levels/materials, and bad boss-run design. Focus on whether challenge feels fair and progression feels earned.",
+      "This game has no authored story by design (Mario Odyssey, Astro Bot, Hitman). Do not penalize the absence of narrative — score story_quality and narrative_investment at 5/10 as neutral. Focus entirely on mechanical excellence: does each level/mission feel fresh? Is pacing tight? Note: a narrative cap of 87 applies — pure gameplay games cannot reach Must Play tier regardless of mechanical quality.",
   },
-  metroidvania: {
-    key: "metroidvania",
-    displayName: "Metroidvania",
-    weights: { pacing: 0.4, bloat: 0.25, value: 0.25, grind: 0.1 },
+  "narrative-open-world": {
+    key: "narrative-open-world",
+    displayName: "Narrative Open World",
+    narrativeCap: false,
+    weights: {
+      story_quality: 1.00,
+      narrative_investment: 1.00,
+      atmospheric_depth: 0.90,
+      pacing: 0.75,
+      exploration: 0.65,
+      combat_repetition: 0.45,
+      boss_difficulty: 0.35,
+      polish_bugs: 0.25,
+      ui_controls: 0.20,
+    },
     aiGuidance:
-      "For Metroidvanias, backtracking is a core mechanic — do NOT penalize intentional revisiting of areas with new abilities. Penalize mandatory grind, excessive filler between meaningful upgrades, and map bloat that doesn't reward exploration.",
+      "Story and atmosphere are the primary experience (RDR2, slow-burn Rockstar style). Deliberate slowness is intentional design — do NOT penalize it if it serves immersion. Pacing weight is reduced to reflect that measured moments are part of the vision. Penalize filler that pads the world without narrative payoff.",
   },
-  "fps-shooter": {
-    key: "fps-shooter",
-    displayName: "FPS / Shooter",
-    weights: { pacing: 0.45, bloat: 0.25, value: 0.2, grind: 0.1 },
+  "action-horror": {
+    key: "action-horror",
+    displayName: "Action Horror Blended",
+    narrativeCap: false,
+    weights: {
+      combat_repetition: 0.94,
+      boss_difficulty: 0.88,
+      atmospheric_depth: 0.80,
+      pacing: 0.88,
+      story_quality: 0.64,
+      narrative_investment: 0.61,
+      polish_bugs: 0.46,
+      exploration: 0.39,
+      ui_controls: 0.23,
+    },
     aiGuidance:
-      "For FPS/shooters, campaign pacing is the primary concern. Penalize repetitive arena encounters, filler missions, and anything that interrupts the action flow. A tight 8-hour campaign that never lets up should score very high.",
+      "Combat and atmosphere drive the experience equally (RE series). Boss design must be memorable and fair. Atmosphere is critical — it elevates or destroys the experience. Story matters more than pure action games but less than narrative RPGs. Penalize anything that breaks tension or makes combat feel repetitive.",
   },
-  "indie-short": {
-    key: "indie-short",
-    displayName: "Indie / Short",
-    weights: { pacing: 0.35, bloat: 0.1, value: 0.4, grind: 0.15 },
+  crpg: {
+    key: "crpg",
+    displayName: "CRPG / Tactical RPG",
+    narrativeCap: false,
+    weights: {
+      story_quality: 1.00,
+      narrative_investment: 1.00,
+      pacing: 0.90,
+      exploration: 0.70,
+      atmospheric_depth: 0.70,
+      combat_repetition: 0.65,
+      polish_bugs: 0.30,
+      ui_controls: 0.25,
+      boss_difficulty: 0.30,
+    },
     aiGuidance:
-      "For indie/short games, value-per-dollar is the most important factor. Bloat is rarely an issue. Focus on whether the price is justified by the quality and length of the experience, and whether the game delivers a complete, satisfying arc.",
+      "Story depth and narrative investment are the primary purpose of this genre. Tactical combat variety matters — encounters should feel distinct and strategic, not repetitive. Penalize padding that adds playtime without advancing story or exploration. Complex UI is somewhat expected in this genre — only penalize if it's genuinely hostile.",
+  },
+  "pvpve-extraction": {
+    key: "pvpve-extraction",
+    displayName: "PvPvE Extraction",
+    narrativeCap: true, // max enjoyment_score = 87
+    weights: {
+      combat_repetition: 1.00,
+      pacing: 0.95,
+      boss_difficulty: 0.80,
+      exploration: 0.75,
+      polish_bugs: 0.65,
+      ui_controls: 0.60,
+      atmospheric_depth: 0.50,
+      story_quality: 0.10,
+      narrative_investment: 0.10,
+    },
+    aiGuidance:
+      "This is a multiplayer-first extraction game with no authored story. Score story_quality and narrative_investment at 5/10 as neutral. Focus on moment-to-moment combat freshness, map design quality, and technical stability. Note: a narrative cap of 87 applies.",
+  },
+  default: {
+    key: "default",
+    displayName: "General",
+    narrativeCap: false,
+    weights: {
+      story_quality: 0.70,
+      narrative_investment: 0.70,
+      pacing: 0.85,
+      combat_repetition: 0.75,
+      boss_difficulty: 0.55,
+      exploration: 0.55,
+      polish_bugs: 0.45,
+      ui_controls: 0.35,
+      atmospheric_depth: 0.60,
+    },
+    aiGuidance:
+      "No exact genre match — using balanced default weights. Evaluate all 9 dimensions fairly. Penalize bloat and filler that disrespects the player's time.",
   },
 };
 
@@ -87,24 +277,69 @@ export function getGenreRule(genreKey: string): GenreRule {
   return GENRE_RULES[genreKey] || GENRE_RULES.default;
 }
 
-export function mapIGDBGenreToKey(genres: string[]): string {
+export function mapIGDBGenreToKey(genres: string[], developer?: string | null, title?: string): string {
   const genreLower = genres.map((g) => g.toLowerCase());
+  const titleLower = (title || "").toLowerCase();
+  const devLower = (developer || "").toLowerCase();
 
-  if (genreLower.some((g) => g.includes("roguelike") || g.includes("roguelite")))
+  // Extraction / PvPvE
+  if (titleLower.includes("arc raiders") || titleLower.includes("hunt: showdown") || titleLower.includes("hunt showdown"))
+    return "pvpve-extraction";
+
+  // Roguelike
+  if (genreLower.some((g) => g.includes("roguelike") || g.includes("roguelite"))) {
+    // Atmospheric roguelikes
+    if (titleLower.includes("returnal") || titleLower.includes("saros"))
+      return "roguelike-atmospheric";
     return "roguelike";
-  if (genreLower.some((g) => g.includes("souls") || g.includes("soulslike")))
-    return "souls-like";
-  if (genreLower.some((g) => g.includes("horror"))) return "horror-action";
-  if (genreLower.some((g) => g.includes("survival"))) return "survival";
-  if (genreLower.some((g) => g.includes("jrpg") || g.includes("role-playing")))
-    return "jrpg";
+  }
+
+  // Soulslike
+  if (genreLower.some((g) => g.includes("souls") || g.includes("soulslike"))) {
+    // Blended soulslikes (have narrative)
+    if (titleLower.includes("lies of p") || titleLower.includes("stellar blade") || titleLower.includes("nioh"))
+      return "soulslike-blended";
+    return "soulslike";
+  }
+  // FromSoftware games are soulslike
+  if (devLower.includes("fromsoftware") || titleLower.includes("elden ring") || titleLower.includes("dark souls") || titleLower.includes("sekiro") || titleLower.includes("bloodborne"))
+    return "soulslike";
+
+  // Horror / Action Horror
+  if (genreLower.some((g) => g.includes("horror")))
+    return "action-horror";
+
+  // CRPG
+  if (titleLower.includes("baldur") || titleLower.includes("divinity") || titleLower.includes("pillars of eternity") || titleLower.includes("pathfinder"))
+    return "crpg";
+  if (genreLower.some((g) => g.includes("tactical") && g.includes("rpg")))
+    return "crpg";
+
+  // Platformer / Metroidvania
   if (genreLower.some((g) => g.includes("metroidvania") || g.includes("platform")))
-    return "metroidvania";
-  if (genreLower.some((g) => g.includes("shooter") || g.includes("fps")))
-    return "fps-shooter";
-  if (genreLower.some((g) => g.includes("indie"))) return "indie-short";
-  if (genreLower.some((g) => g.includes("open world") || g.includes("adventure")))
-    return "open-world-rpg";
+    return "platformer-metroidvania";
+
+  // Puzzle / Narrative
+  if (genreLower.some((g) => g.includes("puzzle") || g.includes("visual novel")))
+    return "puzzle-narrative";
+
+  // Pure gameplay (Nintendo style)
+  if (titleLower.includes("mario") || titleLower.includes("astro bot") || titleLower.includes("hitman"))
+    return "pure-gameplay";
+
+  // Narrative Open World (Rockstar style)
+  if (titleLower.includes("red dead") || titleLower.includes("grand theft auto"))
+    return "narrative-open-world";
+
+  // Action Adventure
+  if (genreLower.some((g) => g.includes("hack and slash") || g.includes("beat 'em up")))
+    return "action-adventure";
+  if (genreLower.some((g) => g.includes("adventure")))
+    return "action-adventure";
+
+  // Narrative RPG (Witcher, Cyberpunk, God of War style)
+  if (genreLower.some((g) => g.includes("role-playing") || g.includes("rpg")))
+    return "narrative-rpg";
 
   return "default";
 }

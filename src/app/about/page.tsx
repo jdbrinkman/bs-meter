@@ -1,119 +1,125 @@
-import { BRACKETS } from "@/lib/scoring/brackets";
+import { VERDICTS, BS_SCORE_LABELS } from "@/lib/scoring/brackets";
 import { GENRE_RULES } from "@/config/genre-weights";
 import { NEGATIVE_SIGNALS, POSITIVE_SIGNALS } from "@/config/signal-taxonomy";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
-import type { BracketKey } from "@/lib/types";
+import type { VerdictKey } from "@/lib/types";
 
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-2 text-3xl font-bold text-white">Methodology</h1>
       <p className="mb-10 text-zinc-400">
-        How BS Meter scores games on how much they respect your time.
+        How BS Meter scores games across 9 dimensions of quality and time-respect.
       </p>
 
-      {/* The Formula */}
-      <Section title="The Formula">
+      {/* The Scoring System */}
+      <Section title="The Scoring System">
         <p className="mb-4 text-sm text-zinc-300">
-          Every game is scored on a 1-10 scale using four weighted pillars.
-          Higher scores mean less BS.
+          Every game gets two scores. Gemini 2.5 Flash scores 9 dimensions (each 1-10),
+          then we compute both scores from those using genre-adjusted weights.
         </p>
-        <code className="block rounded-lg bg-zinc-900 p-4 text-sm text-zinc-300">
-          BS_Score = (w.P x Pacing) + (w.B x Bloat) + (w.V x Value) + (w.G x
-          Grind)
-        </code>
-        <div className="mt-4 space-y-3">
-          <Pillar
-            name="Pacing & Flow (P)"
-            desc="Does the game maintain engagement throughout? Are there dead zones or walk-and-talk padding?"
-          />
-          <Pillar
-            name="Bloat Ratio (B)"
-            desc="How much content beyond the main path is filler? Calculated partly from HowLongToBeat data."
-          />
-          <Pillar
-            name="Value / Cost (V)"
-            desc="Is the price justified by quality hours — not just total hours? A $70 game that's 60% filler scores low."
-          />
-          <Pillar
-            name="Grind Factor (G)"
-            desc="Does progression feel earned or forced? Are there artificial walls, RNG gates, or mandatory level gating?"
-          />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <h4 className="mb-1 font-bold text-white">Enjoyment Score (0-100)</h4>
+            <p className="text-xs text-zinc-400">
+              Weighted sum across all 9 dimensions, normalized and curved so a
+              &ldquo;genuinely good game&rdquo; lands around 78. Determines the verdict (Must Play → Skip).
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <h4 className="mb-1 font-bold text-white">BS Score (0-10)</h4>
+            <p className="text-xs text-zinc-400">
+              Measures friction only — pacing, combat repetition, UI, and polish.
+              Lower is better. A 1.5 means the game respects your time; an 8+ means
+              chronic padding.
+            </p>
+          </div>
         </div>
       </Section>
 
-      {/* Brackets */}
-      <Section title="The Brackets">
+      {/* 9 Dimensions */}
+      <Section title="The 9 Dimensions">
         <div className="space-y-3">
-          {(Object.keys(BRACKETS) as BracketKey[]).map((key) => {
-            const b = BRACKETS[key];
+          {[
+            { name: "Story Quality", desc: "Writing, narrative structure, and emotional resonance" },
+            { name: "Narrative Investment", desc: "How much you care about characters — atmospheric storytelling (Bloodborne, Returnal) counts fully" },
+            { name: "Pacing", desc: "Every hour earning its keep — filler and hollow padding are penalized, deliberate slowness is not" },
+            { name: "Combat Variety", desc: "Does combat stay fresh, or does it become repetitive and grinding?" },
+            { name: "Boss Design", desc: "Quality, fairness, and memorability of boss encounters" },
+            { name: "Exploration", desc: "How rewarding is world discovery — does the world feel worth exploring?" },
+            { name: "Polish & Stability", desc: "Bug-free, technically stable, no crashes or major jank" },
+            { name: "UI & Controls", desc: "Intuitive, responsive — the game gets out of its own way" },
+            { name: "Atmospheric Depth", desc: "Immersion, world-building, tonal cohesion — even without explicit dialogue" },
+          ].map((d) => (
+            <div key={d.name}>
+              <span className="text-sm font-semibold text-white">{d.name}</span>
+              <p className="text-xs text-zinc-400">{d.desc}</p>
+            </div>
+          ))}
+        </div>
+      </Section>
+
+      {/* Verdicts */}
+      <Section title="Verdict Scale">
+        <div className="mb-6 space-y-3">
+          {(Object.keys(VERDICTS) as VerdictKey[]).map((key) => {
+            const v = VERDICTS[key];
             return (
               <div key={key} className="flex items-center gap-3">
                 <span
-                  className="inline-block w-20 rounded-full py-1 text-center text-xs font-bold text-white"
-                  style={{ backgroundColor: b.color }}
+                  className="inline-block w-28 rounded-full py-1 text-center text-xs font-bold text-white"
+                  style={{ backgroundColor: v.color }}
                 >
-                  {b.range}
+                  {v.range}
                 </span>
-                <span className="font-semibold text-white">{b.label}</span>
+                <span className="font-semibold text-white">{v.label}</span>
               </div>
             );
           })}
         </div>
+        <p className="text-xs text-zinc-500">
+          Note: Pure Gameplay and PvPvE Extraction games are capped at 87 (Buy tier) — a game with no authored story cannot reach Must Play regardless of mechanical quality.
+        </p>
+        <h4 className="mb-3 mt-6 text-sm font-semibold text-zinc-300">BS Score Legend</h4>
+        <div className="space-y-2">
+          {BS_SCORE_LABELS.map((tier) => (
+            <div key={tier.label} className="flex items-center gap-3 text-xs">
+              <span className="w-12 font-bold" style={{ color: tier.color }}>
+                0–{tier.max}
+              </span>
+              <span className="text-zinc-400">{tier.label}</span>
+            </div>
+          ))}
+        </div>
       </Section>
 
       {/* Genre Rules */}
-      <Section title="Genre-Sensitive Scoring">
+      <Section title="Genre-Sensitive Weights">
         <p className="mb-4 text-sm text-zinc-300">
-          A single BS framework across all genres would create bad results.
-          Roguelikes repeat by design. JRPGs are longer by design. So we adjust
-          pillar weights per genre.
+          Weights vary by genre — a Soulslike is judged primarily on boss design and combat,
+          while a Narrative RPG lives or dies on its story.
         </p>
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-zinc-800 text-zinc-500">
-                <th className="py-2 pr-4">Genre</th>
-                <th className="py-2 pr-2">P</th>
-                <th className="py-2 pr-2">B</th>
-                <th className="py-2 pr-2">V</th>
-                <th className="py-2 pr-2">G</th>
-                <th className="py-2">Key Rule</th>
-              </tr>
-            </thead>
-            <tbody>
-              {Object.values(GENRE_RULES).map((rule) => (
-                <tr key={rule.key} className="border-b border-zinc-900">
-                  <td className="py-2 pr-4 font-medium text-white">
-                    {rule.displayName}
-                  </td>
-                  <td className="py-2 pr-2 text-zinc-400">
-                    {rule.weights.pacing}
-                  </td>
-                  <td className="py-2 pr-2 text-zinc-400">
-                    {rule.weights.bloat}
-                  </td>
-                  <td className="py-2 pr-2 text-zinc-400">
-                    {rule.weights.value}
-                  </td>
-                  <td className="py-2 pr-2 text-zinc-400">
-                    {rule.weights.grind}
-                  </td>
-                  <td className="py-2 text-zinc-500">
-                    {rule.aiGuidance.slice(0, 80)}...
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <div className="space-y-4">
+          {Object.values(GENRE_RULES).map((rule) => (
+            <div key={rule.key} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-white">{rule.displayName}</span>
+                {rule.narrativeCap && (
+                  <span className="rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">
+                    Narrative cap
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 text-xs text-zinc-500">{rule.aiGuidance.slice(0, 120)}...</p>
+            </div>
+          ))}
         </div>
       </Section>
 
       {/* Signal Taxonomy */}
       <Section title="BS Signal Taxonomy">
         <p className="mb-4 text-sm text-zinc-300">
-          The AI looks for these specific signals in reviewer transcripts and
-          game data.
+          The AI looks for these specific signals in reviewer transcripts and game data.
         </p>
         <div className="grid gap-8 md:grid-cols-2">
           <div>
@@ -187,8 +193,12 @@ export default function AboutPage() {
             transcripts from trusted channels
           </li>
           <li>
+            <strong className="text-white">Reddit via Perplexity</strong> — User
+            sentiment, bug reports, and community complaints
+          </li>
+          <li>
             <strong className="text-white">Gemini 2.5 Flash</strong> — AI
-            analysis and signal detection
+            analysis across all 9 dimensions
           </li>
         </ul>
       </Section>
@@ -208,14 +218,5 @@ function Section({
       <h2 className="mb-4 text-xl font-bold text-white">{title}</h2>
       {children}
     </section>
-  );
-}
-
-function Pillar({ name, desc }: { name: string; desc: string }) {
-  return (
-    <div>
-      <span className="text-sm font-semibold text-white">{name}</span>
-      <p className="text-xs text-zinc-400">{desc}</p>
-    </div>
   );
 }

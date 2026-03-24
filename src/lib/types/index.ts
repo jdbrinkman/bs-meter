@@ -1,5 +1,5 @@
 export type { Game, GameWithScore, AnalysisStatus } from "./game";
-export type { Score, BracketKey } from "./score";
+export type { Score, VerdictKey } from "./score";
 export type { GameSignal } from "./signal";
 export type {
   IGDBGame,

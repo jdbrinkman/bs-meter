@@ -1,6 +1,6 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeGame } from "@/lib/ai/analyze-game";
-import { computeBSScore } from "@/lib/scoring/formula";
+import { computeScore } from "@/lib/scoring/formula";
 import { mapIGDBGenreToKey } from "@/config/genre-weights";
 import { ingestGameData } from "./ingest";
 import type { Game, ReviewSource } from "@/lib/types";
@@ -21,8 +21,10 @@ export async function processGame(gameId: string): Promise<void> {
 
   try {
     // Step 1: Ingest data if not already done
+    let redditSentiment: string | null = null;
     if (game.analysis_status === "pending") {
-      await ingestGameData(gameId, game.title);
+      const ingestResult = await ingestGameData(gameId, game.title);
+      redditSentiment = ingestResult.redditSentiment;
 
       // Refresh game data after ingestion
       const { data: refreshed } = await supabase
@@ -47,37 +49,47 @@ export async function processGame(gameId: string): Promise<void> {
       .select("*")
       .eq("game_id", gameId);
 
-    // Step 4: Determine genre key
+    // Step 4: Determine genre key from IGDB genres + developer/title hints
+    const typedGame = game as Game;
     const genreKey = mapIGDBGenreToKey(
-      (game as Game).genres || []
+      typedGame.genres || [],
+      typedGame.developer,
+      typedGame.title
     );
 
     // Step 5: Run AI analysis
     const analysis = await analyzeGame(
-      game as Game,
+      typedGame,
       (reviewSources || []) as ReviewSource[],
+      genreKey,
+      redditSentiment
+    );
+
+    // Step 6: Compute dual scores with genre-adjusted weights
+    const { enjoyment_score, bs_score, verdict, weights } = computeScore(
+      analysis.dimension_scores,
       genreKey
     );
 
-    // Step 6: Compute final score with genre-adjusted weights
-    const { score, bracket, weights } = computeBSScore(
-      analysis.pillar_scores,
-      genreKey
-    );
-
-    // Step 7: Delete any existing scores/signals for this game (re-analysis)
+    // Step 7: Delete any existing scores/signals (re-analysis)
     await supabase.from("scores").delete().eq("game_id", gameId);
     await supabase.from("signals").delete().eq("game_id", gameId);
 
     // Step 8: Store the score
     await supabase.from("scores").insert({
       game_id: gameId,
-      bs_score: score,
-      bracket,
-      pacing_score: analysis.pillar_scores.pacing,
-      bloat_score: analysis.pillar_scores.bloat,
-      value_score: analysis.pillar_scores.value,
-      grind_score: analysis.pillar_scores.grind,
+      enjoyment_score,
+      bs_score,
+      verdict,
+      story_quality_score: analysis.dimension_scores.story_quality,
+      narrative_investment_score: analysis.dimension_scores.narrative_investment,
+      pacing_score: analysis.dimension_scores.pacing,
+      combat_repetition_score: analysis.dimension_scores.combat_repetition,
+      boss_difficulty_score: analysis.dimension_scores.boss_difficulty,
+      exploration_score: analysis.dimension_scores.exploration,
+      polish_bugs_score: analysis.dimension_scores.polish_bugs,
+      ui_controls_score: analysis.dimension_scores.ui_controls,
+      atmospheric_depth_score: analysis.dimension_scores.atmospheric_depth,
       genre_rule_applied: genreKey,
       weight_adjustments: weights,
       summary: analysis.summary,
@@ -111,7 +123,7 @@ export async function processGame(gameId: string): Promise<void> {
       .eq("id", gameId);
 
     console.log(
-      `Analysis complete for ${game.title}: ${score} (${bracket})`
+      `Analysis complete for ${game.title}: ${enjoyment_score}/100 enjoyment, ${bs_score}/10 BS (${verdict})`
     );
   } catch (error) {
     const errorMsg =

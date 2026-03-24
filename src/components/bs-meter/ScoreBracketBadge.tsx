@@ -1,12 +1,12 @@
-import { getBracketInfo } from "@/lib/scoring/brackets";
-import type { BracketKey } from "@/lib/types";
+import { getVerdictInfo } from "@/lib/scoring/brackets";
+import type { VerdictKey } from "@/lib/types";
 
 type ScoreBracketBadgeProps = {
-  bracket: BracketKey;
+  bracket: VerdictKey;
 };
 
 export function ScoreBracketBadge({ bracket }: ScoreBracketBadgeProps) {
-  const info = getBracketInfo(bracket);
+  const info = getVerdictInfo(bracket);
 
   return (
     <span
