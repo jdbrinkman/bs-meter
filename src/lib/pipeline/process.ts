@@ -5,51 +5,35 @@ import { mapIGDBGenreToKey } from "@/config/genre-weights";
 import { ingestGameData } from "./ingest";
 import type { Game, ReviewSource } from "@/lib/types";
 
-export async function processGame(gameId: string): Promise<void> {
+/**
+ * Re-score a game using existing review_sources in the DB.
+ * Does NOT re-fetch any external data — safe to call after prompt/formula changes.
+ */
+export async function scoreGame(
+  gameId: string,
+  redditSentiment: string | null = null
+): Promise<void> {
   const supabase = createAdminClient();
 
-  // Fetch the game
   const { data: game, error: gameError } = await supabase
     .from("games")
     .select("*")
     .eq("id", gameId)
     .single();
 
-  if (gameError || !game) {
-    throw new Error(`Game not found: ${gameId}`);
-  }
+  if (gameError || !game) throw new Error(`Game not found: ${gameId}`);
 
   try {
-    // Step 1: Ingest data if not already done
-    let redditSentiment: string | null = null;
-    if (game.analysis_status === "pending") {
-      const ingestResult = await ingestGameData(gameId, game.title);
-      redditSentiment = ingestResult.redditSentiment;
-
-      // Refresh game data after ingestion
-      const { data: refreshed } = await supabase
-        .from("games")
-        .select("*")
-        .eq("id", gameId)
-        .single();
-
-      if (!refreshed) throw new Error("Failed to refresh game data");
-      Object.assign(game, refreshed);
-    }
-
-    // Step 2: Update status to analyzing
     await supabase
       .from("games")
       .update({ analysis_status: "analyzing" })
       .eq("id", gameId);
 
-    // Step 3: Fetch review sources
     const { data: reviewSources } = await supabase
       .from("review_sources")
       .select("*")
       .eq("game_id", gameId);
 
-    // Step 4: Determine genre key from IGDB genres + developer/title hints
     const typedGame = game as Game;
     const genreKey = mapIGDBGenreToKey(
       typedGame.genres || [],
@@ -57,7 +41,6 @@ export async function processGame(gameId: string): Promise<void> {
       typedGame.title
     );
 
-    // Step 5: Run AI analysis
     const analysis = await analyzeGame(
       typedGame,
       (reviewSources || []) as ReviewSource[],
@@ -65,17 +48,15 @@ export async function processGame(gameId: string): Promise<void> {
       redditSentiment
     );
 
-    // Step 6: Compute dual scores with genre-adjusted weights
     const { enjoyment_score, bs_score, verdict, weights } = computeScore(
       analysis.dimension_scores,
       genreKey
     );
 
-    // Step 7: Delete any existing scores/signals (re-analysis)
+    // Wipe old scores/signals before inserting fresh ones
     await supabase.from("scores").delete().eq("game_id", gameId);
     await supabase.from("signals").delete().eq("game_id", gameId);
 
-    // Step 8: Store the score
     await supabase.from("scores").insert({
       game_id: gameId,
       enjoyment_score,
@@ -99,7 +80,6 @@ export async function processGame(gameId: string): Promise<void> {
       confidence: analysis.confidence,
     });
 
-    // Step 9: Store detected signals
     if (analysis.signals.length > 0) {
       await supabase.from("signals").insert(
         analysis.signals.map((s) => ({
@@ -113,7 +93,6 @@ export async function processGame(gameId: string): Promise<void> {
       );
     }
 
-    // Step 10: Mark as complete
     await supabase
       .from("games")
       .update({
@@ -123,11 +102,10 @@ export async function processGame(gameId: string): Promise<void> {
       .eq("id", gameId);
 
     console.log(
-      `Analysis complete for ${game.title}: ${enjoyment_score}/100 enjoyment, ${bs_score}/10 BS (${verdict})`
+      `Scoring complete for ${game.title}: ${enjoyment_score}/100 enjoyment, ${bs_score}/10 BS (${verdict})`
     );
   } catch (error) {
-    const errorMsg =
-      error instanceof Error ? error.message : String(error);
+    const errorMsg = error instanceof Error ? error.message : String(error);
     await supabase
       .from("games")
       .update({ analysis_status: "error", error_log: errorMsg })
@@ -136,8 +114,32 @@ export async function processGame(gameId: string): Promise<void> {
   }
 }
 
+/**
+ * Full pipeline: ingest raw data (if not yet done), then score.
+ */
+export async function processGame(gameId: string): Promise<void> {
+  const supabase = createAdminClient();
+
+  const { data: game, error: gameError } = await supabase
+    .from("games")
+    .select("*")
+    .eq("id", gameId)
+    .single();
+
+  if (gameError || !game) throw new Error(`Game not found: ${gameId}`);
+
+  let redditSentiment: string | null = null;
+
+  if (game.analysis_status === "pending") {
+    const ingestResult = await ingestGameData(gameId, game.title);
+    redditSentiment = ingestResult.redditSentiment;
+  }
+
+  await scoreGame(gameId, redditSentiment);
+}
+
 export async function seedAndProcessGames(
-  games: { title: string; slug: string; priceUsd: number; genres: string[] }[]
+  games: { title: string; slug: string; priceUsd: number; genres: string[]; steamAppId?: number }[]
 ): Promise<{ success: string[]; failed: string[] }> {
   const supabase = createAdminClient();
   const success: string[] = [];
@@ -170,6 +172,7 @@ export async function seedAndProcessGames(
             title: seedGame.title,
             price_usd: seedGame.priceUsd,
             genres: seedGame.genres,
+            steam_app_id: seedGame.steamAppId ?? null,
           })
           .select("id")
           .single();

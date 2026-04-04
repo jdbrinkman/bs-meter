@@ -322,7 +322,7 @@ export default async function GameDetailPage({
       {/* ── BODY ── */}
       <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">
 
-        {/* Time to Beat + Critics side by side */}
+        {/* Time to Beat + Steam side by side */}
         <div className="grid gap-6 md:grid-cols-2">
           {(game.main_story_hours || game.main_extras_hours || game.completionist_hours) && (
             <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
@@ -361,6 +361,31 @@ export default async function GameDetailPage({
             </div>
           )}
 
+          {game.steam_review_score_desc && (
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
+              <h3 className="mb-5 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+                Steam Users
+              </h3>
+              <p className="text-2xl font-black font-headline text-on-surface">
+                {game.steam_review_score_desc}
+              </p>
+              {game.steam_total_reviews && (
+                <p className="mt-1 text-xs text-outline font-label">
+                  {game.steam_total_reviews.toLocaleString()} reviews
+                </p>
+              )}
+              {game.steam_app_id && (
+                <a
+                  href={`https://store.steampowered.com/app/${game.steam_app_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block text-xs font-label text-outline hover:text-on-surface transition-colors"
+                >
+                  View on Steam →
+                </a>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Signals */}
