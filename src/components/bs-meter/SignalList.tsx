@@ -85,9 +85,6 @@ function SignalChip({
   return (
     <div className={`group relative rounded-lg border px-3 py-1.5 ${bgColor}`}>
       <span className="text-xs font-medium">{label}</span>
-      <span className="ml-1.5 text-[10px] opacity-60">
-        {strength.toFixed(0)}/10
-      </span>
       {evidence && (
         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-64 -translate-x-1/2 rounded-lg bg-zinc-800 p-3 text-xs text-zinc-300 shadow-lg group-hover:block">
           &ldquo;{evidence}&rdquo;

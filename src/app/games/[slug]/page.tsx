@@ -49,99 +49,106 @@ export default async function GameDetailPage({
       {/* ── HERO ── */}
       <section className="px-6 md:px-8 py-12 md:py-16 border-b border-outline-variant/10 bg-surface-container-low">
         <div className="mx-auto max-w-[1440px]">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8">
 
-            {/* Cover image */}
-            <div className="relative aspect-[3/4] w-44 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-high shadow-2xl md:w-52">
-              {game.cover_url ? (
-                <Image
-                  src={game.cover_url}
-                  alt={game.title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
-                  No Cover
-                </div>
-              )}
-            </div>
+            {/* Left col: cover + info */}
+            <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">
 
-            {/* Game info — grows to fill */}
-            <div className="flex min-w-0 flex-1 flex-col justify-between gap-6">
-              {/* Genre tags */}
-              {game.genres?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {game.genres.map((genre: string) => (
-                    <span
-                      key={genre}
-                      className="bg-surface-container-high px-3 py-1 rounded-md text-xs font-label text-on-surface-variant tracking-widest uppercase"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              )}
-
-              {/* Title */}
-              <h1 className="text-5xl font-black uppercase tracking-tighter text-on-surface font-headline md:text-7xl leading-none">
-                {game.title}
-              </h1>
-
-              {/* Metadata grid */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 border-y border-outline-variant/15 md:grid-cols-4">
-                {game.developer && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Developer
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {game.developer}
-                    </p>
-                  </div>
-                )}
-                {game.release_date && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Release Date
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {new Date(game.release_date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-                {game.price_usd && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Price
-                    </p>
-                    <p className="font-headline font-bold text-base text-primary">
-                      ${game.price_usd}
-                    </p>
-                  </div>
-                )}
-                {(game.platforms?.length > 0) && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Platform
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {game.platforms?.slice(0, 2).join(" / ")}
-                    </p>
+              {/* Cover image */}
+              <div className="relative aspect-[3/4] w-44 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-high shadow-2xl md:w-52">
+                {game.cover_url ? (
+                  <Image
+                    src={game.cover_url}
+                    alt={game.title}
+                    fill
+                    className="object-cover"
+                    priority
+                  />
+                ) : (
+                  <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
+                    No Cover
                   </div>
                 )}
               </div>
 
+              {/* Game info — grows to fill */}
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-6">
+                {/* Genre tags */}
+                {game.genres?.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {game.genres.map((genre: string) => (
+                      <span
+                        key={genre}
+                        className="bg-surface-container-high px-3 py-1 rounded-md text-xs font-label text-on-surface-variant tracking-widest uppercase"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Title */}
+                <h1 className="text-5xl font-black uppercase tracking-tighter text-on-surface font-headline md:text-7xl leading-none">
+                  {game.title}
+                </h1>
+
+                {/* Metadata grid */}
+                <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 border-y border-outline-variant/15 md:grid-cols-4">
+                  {game.developer && (
+                    <div>
+                      <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                        Developer
+                      </p>
+                      <p className="font-headline font-bold text-base text-on-surface">
+                        {game.developer}
+                      </p>
+                    </div>
+                  )}
+                  {game.release_date && (
+                    <div>
+                      <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                        Release Date
+                      </p>
+                      <p className="font-headline font-bold text-base text-on-surface">
+                        {new Date(game.release_date).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                    </div>
+                  )}
+                  {game.price_usd && (
+                    <div>
+                      <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                        Price
+                      </p>
+                      <p className="font-headline font-bold text-base text-primary">
+                        ${game.price_usd}
+                      </p>
+                    </div>
+                  )}
+                  {(game.platforms?.length > 0) && (
+                    <div>
+                      <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                        Platform
+                      </p>
+                      <p className="font-headline font-bold text-base text-on-surface">
+                        {game.platforms?.slice(0, 2).join(" / ")}
+                      </p>
+                    </div>
+                  )}
+                </div>
+
+              </div>
             </div>
 
-            {/* BS Score gauge */}
+            {/* Right col: BS Score gauge card */}
             {score && bsLabel && (
-              <div className="flex flex-col items-center flex-shrink-0 self-center">
+              <div
+                className="flex flex-col items-center justify-center rounded-2xl border-2 bg-background p-8 lg:p-10"
+                style={{ borderColor: bsLabel.color }}
+              >
                 <BSGauge score={score.bs_score} />
               </div>
             )}
