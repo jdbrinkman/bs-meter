@@ -47,9 +47,9 @@ export default async function GameDetailPage({
     <div className="min-h-screen bg-background">
 
       {/* ── HERO ── */}
-      <section className="px-6 md:px-8 py-12 md:py-16 border-b border-outline-variant/10 bg-surface-container-low">
+      <section className="px-6 md:px-8 py-8 md:py-12 border-b border-outline-variant/10 bg-surface-container-low">
         <div className="mx-auto max-w-[1440px]">
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_320px] lg:items-stretch lg:gap-8">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_400px] lg:items-start lg:gap-8">
 
             {/* Left col: cover + info */}
             <div className="flex flex-col gap-8 sm:flex-row sm:items-start sm:gap-10">
@@ -72,7 +72,7 @@ export default async function GameDetailPage({
               </div>
 
               {/* Game info — grows to fill */}
-              <div className="flex min-w-0 flex-1 flex-col justify-between gap-6">
+              <div className="flex min-w-0 flex-1 flex-col justify-between gap-4">
                 {/* Genre tags */}
                 {game.genres?.length > 0 && (
                   <div className="flex flex-wrap gap-2">
@@ -140,30 +140,29 @@ export default async function GameDetailPage({
                   )}
                 </div>
 
+
               </div>
             </div>
 
-            {/* Right col: BS Score gauge card */}
-            {score && bsLabel && (
-              <div
-                className="flex flex-col items-center justify-center rounded-2xl border-2 bg-background p-8 lg:p-10"
-                style={{ borderColor: bsLabel.color }}
-              >
-                <BSGauge score={score.bs_score} />
-              </div>
-            )}
+            {/* Right col: gauge + evidence stacked */}
+            <div className="flex flex-col gap-4">
+              {score && bsLabel && (
+                <div
+                  className="flex flex-col items-center justify-center rounded-2xl border-2 bg-background p-8"
+                  style={{ borderColor: bsLabel.color }}
+                >
+                  <BSGauge score={score.bs_score} />
+                </div>
+              )}
+              {signals.length > 0 && (
+                <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
+                  <SignalList signals={signals} />
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </section>
-
-      {/* ── THE EVIDENCE ── */}
-      {signals.length > 0 && (
-        <section className="mx-auto max-w-[1440px] px-6 md:px-8 pt-10 pb-2">
-          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-            <SignalList signals={signals} />
-          </div>
-        </section>
-      )}
 
       {/* ── DIMENSION BREAKDOWN ── */}
       {score && (
@@ -190,46 +189,6 @@ export default async function GameDetailPage({
         </section>
       )}
 
-      {/* ── AUDIT REPORT ── */}
-      {score && (
-        <section className="mx-auto max-w-[1440px] px-6 md:px-8 py-16">
-          <div className="mb-10">
-            <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
-              The Audit Report
-            </h2>
-            {score.summary && (
-              <p className="text-on-surface-variant font-body leading-relaxed max-w-2xl">
-                {score.summary}
-              </p>
-            )}
-          </div>
-
-          {/* Top reasons as cards */}
-          {score.top_reasons && score.top_reasons.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {score.top_reasons.slice(0, 3).map((reason: string, i: number) => (
-                <div
-                  key={i}
-                  className="p-6 bg-surface-container hover:bg-surface-container-high transition-all rounded-2xl"
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center mb-4 text-sm font-black font-headline"
-                    style={{
-                      backgroundColor: `${bsLabel?.color}20`,
-                      color: bsLabel?.color,
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <p className="text-on-surface-variant font-body text-sm leading-relaxed">
-                    {reason}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* ── BODY ── */}
       <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">

@@ -10,17 +10,17 @@ export function SignalList({ signals }: SignalListProps) {
   const positive = signals.filter((s) => s.polarity === "positive");
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-3">
       <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
         The Evidence
       </h3>
 
       {negative.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase text-red-400">
+          <h4 className="mb-1.5 text-xs font-semibold uppercase text-red-400">
             BS Detected
           </h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {negative
               .sort((a, b) => b.strength - a.strength)
               .map((signal) => {
@@ -41,10 +41,10 @@ export function SignalList({ signals }: SignalListProps) {
 
       {positive.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase text-green-400">
+          <h4 className="mb-1.5 text-xs font-semibold uppercase text-green-400">
             Respect Detected
           </h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-1.5">
             {positive
               .sort((a, b) => b.strength - a.strength)
               .map((signal) => {
@@ -83,7 +83,7 @@ function SignalChip({
       : "bg-green-500/10 border-green-500/30 text-green-400";
 
   return (
-    <div className={`group relative rounded-lg border px-3 py-1.5 ${bgColor}`}>
+    <div className={`group relative rounded-lg border px-2.5 py-1 ${bgColor}`}>
       <span className="text-xs font-medium">{label}</span>
       {evidence && (
         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-64 -translate-x-1/2 rounded-lg bg-zinc-800 p-3 text-xs text-zinc-300 shadow-lg group-hover:block">
