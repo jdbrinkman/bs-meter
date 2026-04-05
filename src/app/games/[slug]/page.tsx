@@ -3,12 +3,11 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
 import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
 import { SignalList } from "@/components/bs-meter/SignalList";
 import { BSGauge } from "@/components/bs-meter/BSGauge";
-import { getBSScoreLabel, getVerdictInfo } from "@/lib/scoring/brackets";
-import type { VerdictKey, GameSignal } from "@/lib/types";
+import { getBSScoreLabel } from "@/lib/scoring/brackets";
+import type { GameSignal } from "@/lib/types";
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -44,16 +43,6 @@ export default async function GameDetailPage({
   const reviewSources = game.review_sources || [];
 
   const bsLabel = score ? getBSScoreLabel(score.bs_score) : null;
-  const verdictInfo = score ? getVerdictInfo(score.verdict as VerdictKey) : null;
-
-  // Determine audit status label
-  const auditStatus =
-    score && score.bs_score <= 3
-      ? "VERIFIED CLEAN"
-      : score && score.bs_score >= 7
-      ? "HIGH BS DETECTED"
-      : "AUDITED";
-
   return (
     <div className="min-h-screen bg-background">
 
@@ -148,60 +137,12 @@ export default async function GameDetailPage({
                 )}
               </div>
 
-              {/* Verdict badge */}
-              {score && (
-                <div className="flex items-center gap-4">
-                  <ScoreBracketBadge bracket={score.verdict as VerdictKey} />
-                  {score.genre_rule_applied && (
-                    <span className="text-xs font-label text-outline">
-                      {score.genre_rule_applied} weights
-                    </span>
-                  )}
-                </div>
-              )}
             </div>
 
             {/* BS Score gauge */}
             {score && bsLabel && (
               <div className="flex flex-col items-center flex-shrink-0">
                 <BSGauge score={score.bs_score} />
-
-                {/* OpenCritic + Steam tiles */}
-                {(game.opencritic_score || game.steam_review_score_desc) && (
-                  <div className="mt-4 flex gap-3 w-full">
-                    {game.opencritic_score && (
-                      <div className="flex-1 rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-3 text-center">
-                        <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                          OpenCritic
-                        </p>
-                        <p className="text-2xl font-black font-headline text-on-surface">
-                          {game.opencritic_score}
-                        </p>
-                      </div>
-                    )}
-                    {game.steam_review_score_desc && (
-                      <div className="flex-1 rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-3 text-center">
-                        <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                          Steam
-                        </p>
-                        {game.steam_app_id ? (
-                          <a
-                            href={`https://store.steampowered.com/app/${game.steam_app_id}`}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-sm font-bold font-headline text-on-surface hover:text-primary transition-colors"
-                          >
-                            {game.steam_review_score_desc}
-                          </a>
-                        ) : (
-                          <p className="text-sm font-bold font-headline text-on-surface">
-                            {game.steam_review_score_desc}
-                          </p>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                )}
               </div>
             )}
           </div>
@@ -211,32 +152,15 @@ export default async function GameDetailPage({
       {/* ── AUDIT REPORT ── */}
       {score && (
         <section className="mx-auto max-w-[1440px] px-6 md:px-8 py-16">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
-                The Audit Report
-              </h2>
-              {score.summary && (
-                <p className="text-on-surface-variant font-body leading-relaxed">
-                  {score.summary}
-                </p>
-              )}
-            </div>
-            <div className="flex-shrink-0 text-right">
-              <span className="text-[10px] font-label uppercase tracking-widest text-primary mb-2 block">
-                Audit Status
-              </span>
-              <span
-                className="px-4 py-2 border rounded-lg font-headline font-bold text-sm"
-                style={{
-                  color: bsLabel?.color,
-                  borderColor: `${bsLabel?.color}40`,
-                  backgroundColor: `${bsLabel?.color}10`,
-                }}
-              >
-                {auditStatus}
-              </span>
-            </div>
+          <div className="mb-10">
+            <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
+              The Audit Report
+            </h2>
+            {score.summary && (
+              <p className="text-on-surface-variant font-body leading-relaxed max-w-2xl">
+                {score.summary}
+              </p>
+            )}
           </div>
 
           {/* Top reasons as cards */}
@@ -294,11 +218,11 @@ export default async function GameDetailPage({
       {/* ── BODY ── */}
       <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">
 
-        {/* Time to Beat + Steam side by side */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Time to Beat + Steam + OpenCritic */}
+        <div className="grid gap-6 md:grid-cols-3">
           {(game.main_story_hours || game.main_extras_hours || game.completionist_hours) && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-              <h3 className="mb-5 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
                 Time to Beat
               </h3>
               <div className="space-y-3">
@@ -334,18 +258,20 @@ export default async function GameDetailPage({
           )}
 
           {game.steam_review_score_desc && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-              <h3 className="mb-5 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
                 Steam Users
               </h3>
-              <p className="text-2xl font-black font-headline text-on-surface">
-                {game.steam_review_score_desc}
-              </p>
-              {game.steam_total_reviews && (
-                <p className="mt-1 text-xs text-outline font-label">
-                  {game.steam_total_reviews.toLocaleString()} reviews
+              <div>
+                <p className="text-2xl font-black font-headline text-on-surface mt-4">
+                  {game.steam_review_score_desc}
                 </p>
-              )}
+                {game.steam_total_reviews && (
+                  <p className="mt-1 text-xs text-outline font-label">
+                    {game.steam_total_reviews.toLocaleString()} reviews
+                  </p>
+                )}
+              </div>
               {game.steam_app_id && (
                 <a
                   href={`https://store.steampowered.com/app/${game.steam_app_id}`}
@@ -356,6 +282,25 @@ export default async function GameDetailPage({
                   View on Steam →
                 </a>
               )}
+            </div>
+          )}
+
+          {game.opencritic_score && (
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+                OpenCritic
+              </h3>
+              <div>
+                <p className="text-5xl font-black font-headline text-on-surface mt-4">
+                  {Math.round(game.opencritic_score)}
+                </p>
+                {game.opencritic_tier && (
+                  <p className="mt-1 text-xs text-outline font-label">
+                    {game.opencritic_tier}
+                  </p>
+                )}
+              </div>
+              <div className="mt-4" />
             </div>
           )}
         </div>
