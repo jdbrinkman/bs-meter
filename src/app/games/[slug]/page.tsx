@@ -199,34 +199,41 @@ export default async function GameDetailPage({
                     </div>
                   </div>
 
-                  {/* Confidence chip */}
-                  {score.confidence && (
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-surface-container px-4 py-2 rounded-xl border border-outline-variant/20 backdrop-blur-md whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45fec9" strokeWidth={2.5}>
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                          <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span className="text-xs font-headline font-bold text-on-surface">
-                          {(score.confidence * 100).toFixed(0)}% Confidence
-                        </span>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
-                {/* OpenCritic score below */}
-                {game.opencritic_score && (
-                  <div className="mt-10 text-center">
-                    <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      OpenCritic
-                    </p>
-                    <p className="text-2xl font-black font-headline text-on-surface">
-                      {game.opencritic_score}
-                      <span className="text-sm font-normal text-outline">/100</span>
-                    </p>
-                    {game.opencritic_tier && (
-                      <p className="text-[10px] font-label text-outline mt-0.5">{game.opencritic_tier}</p>
+                {/* OpenCritic + Steam tiles */}
+                {(game.opencritic_score || game.steam_review_score_desc) && (
+                  <div className="mt-10 flex gap-3">
+                    {game.opencritic_score && (
+                      <div className="flex-1 rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-3 text-center">
+                        <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                          OpenCritic
+                        </p>
+                        <p className="text-2xl font-black font-headline text-on-surface">
+                          {game.opencritic_score}
+                        </p>
+                      </div>
+                    )}
+                    {game.steam_review_score_desc && (
+                      <div className="flex-1 rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-3 text-center">
+                        <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
+                          Steam
+                        </p>
+                        {game.steam_app_id ? (
+                          <a
+                            href={`https://store.steampowered.com/app/${game.steam_app_id}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-sm font-bold font-headline text-on-surface hover:text-primary transition-colors"
+                          >
+                            {game.steam_review_score_desc}
+                          </a>
+                        ) : (
+                          <p className="text-sm font-bold font-headline text-on-surface">
+                            {game.steam_review_score_desc}
+                          </p>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
