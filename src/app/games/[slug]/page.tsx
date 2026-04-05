@@ -141,13 +141,47 @@ export default async function GameDetailPage({
 
             {/* BS Score gauge */}
             {score && bsLabel && (
-              <div className="flex flex-col items-center flex-shrink-0">
+              <div className="flex flex-col items-center flex-shrink-0 self-center">
                 <BSGauge score={score.bs_score} />
               </div>
             )}
           </div>
         </div>
       </section>
+
+      {/* ── THE EVIDENCE ── */}
+      {signals.length > 0 && (
+        <section className="mx-auto max-w-[1440px] px-6 md:px-8 pt-10 pb-2">
+          <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
+            <SignalList signals={signals} />
+          </div>
+        </section>
+      )}
+
+      {/* ── DIMENSION BREAKDOWN ── */}
+      {score && (
+        <section className="bg-surface-container-low py-16 px-6 md:px-8">
+          <div className="mx-auto max-w-[1440px]">
+            <div className="text-center mb-12">
+              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
+                Dimension Breakdown
+              </h2>
+              <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
+            </div>
+            <DimensionBreakdown
+              story_quality={score.story_quality_score}
+              narrative_investment={score.narrative_investment_score}
+              pacing={score.pacing_score}
+              combat_repetition={score.combat_repetition_score}
+              boss_difficulty={score.boss_difficulty_score}
+              exploration={score.exploration_score}
+              polish_bugs={score.polish_bugs_score}
+              ui_controls={score.ui_controls_score}
+              atmospheric_depth={score.atmospheric_depth_score}
+            />
+          </div>
+        </section>
+      )}
 
       {/* ── AUDIT REPORT ── */}
       {score && (
@@ -187,31 +221,6 @@ export default async function GameDetailPage({
               ))}
             </div>
           )}
-        </section>
-      )}
-
-      {/* ── DIMENSION BREAKDOWN ── */}
-      {score && (
-        <section className="bg-surface-container-low py-16 px-6 md:px-8">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
-                Dimension Breakdown
-              </h2>
-              <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
-            </div>
-            <DimensionBreakdown
-              story_quality={score.story_quality_score}
-              narrative_investment={score.narrative_investment_score}
-              pacing={score.pacing_score}
-              combat_repetition={score.combat_repetition_score}
-              boss_difficulty={score.boss_difficulty_score}
-              exploration={score.exploration_score}
-              polish_bugs={score.polish_bugs_score}
-              ui_controls={score.ui_controls_score}
-              atmospheric_depth={score.atmospheric_depth_score}
-            />
-          </div>
         </section>
       )}
 
@@ -305,12 +314,6 @@ export default async function GameDetailPage({
           )}
         </div>
 
-        {/* Signals */}
-        {signals.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-            <SignalList signals={signals} />
-          </div>
-        )}
 
         {/* Review Sources */}
         {reviewSources.length > 0 && (

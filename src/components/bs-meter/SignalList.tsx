@@ -12,7 +12,7 @@ export function SignalList({ signals }: SignalListProps) {
   return (
     <div className="space-y-6">
       <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-        Detected Signals
+        The Evidence
       </h3>
 
       {negative.length > 0 && (
