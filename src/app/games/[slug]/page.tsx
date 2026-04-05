@@ -6,6 +6,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
 import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
 import { SignalList } from "@/components/bs-meter/SignalList";
+import { BSGauge } from "@/components/bs-meter/BSGauge";
 import { getBSScoreLabel, getVerdictInfo } from "@/lib/scoring/brackets";
 import type { VerdictKey, GameSignal } from "@/lib/types";
 
@@ -160,50 +161,14 @@ export default async function GameDetailPage({
               )}
             </div>
 
-            {/* BS Score circle */}
-            {score && bsLabel && verdictInfo && (
+            {/* BS Score gauge */}
+            {score && bsLabel && (
               <div className="flex flex-col items-center flex-shrink-0">
-                <div className="relative group">
-                  {/* Glow */}
-                  <div
-                    className="absolute inset-0 blur-[80px] rounded-full opacity-30 group-hover:opacity-50 transition-all duration-500"
-                    style={{ backgroundColor: bsLabel.color }}
-                  />
-                  {/* Circle */}
-                  <div
-                    className="relative w-56 h-56 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center bg-surface/60 backdrop-blur-xl"
-                    style={{
-                      border: `8px solid ${bsLabel.color}`,
-                      boxShadow: `0 0 60px ${bsLabel.color}20`,
-                    }}
-                  >
-                    <p className="absolute top-8 text-[9px] font-label uppercase tracking-[0.25em] text-on-surface-variant">
-                      BS Meter Score
-                    </p>
-                    <div
-                      className="text-7xl md:text-8xl font-black font-headline leading-none tabular-nums"
-                      style={{ color: bsLabel.color }}
-                    >
-                      {score.bs_score.toFixed(1)}
-                    </div>
-                    <div className="absolute bottom-10 flex flex-col items-center">
-                      <span className="text-[9px] font-label text-on-surface-variant tracking-widest uppercase mb-0.5">
-                        Friction Level
-                      </span>
-                      <span
-                        className="text-base font-headline font-bold"
-                        style={{ color: bsLabel.color }}
-                      >
-                        {bsLabel.label}
-                      </span>
-                    </div>
-                  </div>
-
-                </div>
+                <BSGauge score={score.bs_score} />
 
                 {/* OpenCritic + Steam tiles */}
                 {(game.opencritic_score || game.steam_review_score_desc) && (
-                  <div className="mt-10 flex gap-3">
+                  <div className="mt-4 flex gap-3 w-full">
                     {game.opencritic_score && (
                       <div className="flex-1 rounded-xl border border-outline-variant/20 bg-surface-container px-4 py-3 text-center">
                         <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
