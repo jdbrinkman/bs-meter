@@ -2,6 +2,7 @@ import { getBSScoreLabel } from "@/lib/scoring/brackets";
 
 type BSGaugeProps = {
   score: number;
+  showLabel?: boolean;
 };
 
 const CX = 140;
@@ -57,7 +58,7 @@ const SEGMENTS = [
 // Small gap between segments (degrees)
 const GAP = 1.5;
 
-export function BSGauge({ score }: BSGaugeProps) {
+export function BSGauge({ score, showLabel = true }: BSGaugeProps) {
   const { label, color } = getBSScoreLabel(score);
   const needleAngle = scoreToAngle(score);
   const needleTip = polarToXY(NEEDLE_R, needleAngle);
@@ -115,30 +116,19 @@ export function BSGauge({ score }: BSGaugeProps) {
         />
         <circle cx={CX} cy={CY} r={3} fill={color} />
 
-        {/* ── "BS METER SCORE" label ── */}
-        <text
-          x={CX}
-          y={20}
-          textAnchor="middle"
-          fill="#adaaaa"
-          fontSize={8}
-          fontFamily="var(--font-label), Inter, sans-serif"
-          fontWeight={600}
-          letterSpacing="0.2em"
-        >
-          BS METER SCORE
-        </text>
       </svg>
 
       {/* ── Text below the gauge ── */}
-      <div className="flex flex-col items-center mt-2">
-        <p
-          className="text-2xl font-black font-headline tracking-tight leading-none text-center"
-          style={{ color }}
-        >
-          {label}
-        </p>
-      </div>
+      {showLabel && (
+        <div className="flex flex-col items-center mt-2">
+          <p
+            className="text-2xl font-black font-headline tracking-tight leading-none text-center"
+            style={{ color }}
+          >
+            {label}
+          </p>
+        </div>
+      )}
     </div>
   );
 }

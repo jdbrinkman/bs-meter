@@ -269,4 +269,23 @@ export const SEED_GAMES: SeedGame[] = [
     genreKey: "platformer-metroidvania",
     hltb: { mainStory: 25, mainExtras: 40, completionist: 65 },
   },
+  // Live Service
+  {
+    title: "Overwatch 2",
+    slug: "overwatch-2",
+    priceUsd: 0,
+    genres: ["Hero Shooter", "Multiplayer"],
+    genreKey: "multiplayer-shooter",
+    steamAppId: 2357570,
+    igdbSlug: "overwatch-2",
+  },
+  {
+    title: "Marvel Rivals",
+    slug: "marvel-rivals",
+    priceUsd: 0,
+    genres: ["Hero Shooter", "Multiplayer"],
+    genreKey: "multiplayer-shooter",
+    steamAppId: 2767030,
+    igdbSlug: "marvel-rivals",
+  },
 ];
