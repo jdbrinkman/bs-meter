@@ -1,14 +1,17 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   searchIGDB,
+  searchIGDBBySlug,
   extractDeveloper,
   extractPublisher,
   formatCoverUrl,
+  filterPlatforms,
 } from "@/lib/api/igdb";
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic } from "@/lib/api/opencritic";
 import { searchYouTubeChannel, fetchTranscript } from "@/lib/api/youtube";
 import { searchRedditSentiment } from "@/lib/api/reddit";
+import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
 import { SEED_GAMES } from "@/config/seed-games";
 
@@ -25,17 +28,33 @@ export async function ingestGameData(
     .eq("id", gameId);
 
   try {
+    // Resolve seed config early — used across multiple steps below
+    const seedGame = SEED_GAMES.find(
+      (g) => g.title.toLowerCase() === title.toLowerCase()
+    );
+
     // 1. IGDB metadata
-    const igdbData = await searchIGDB(title);
+    // Use exact slug lookup when available to avoid fuzzy search mismatches
+    const igdbData = seedGame?.igdbSlug
+      ? await searchIGDBBySlug(seedGame.igdbSlug)
+      : await searchIGDB(title);
+
     if (igdbData) {
+      // Prefer Steam cover art for games with a Steam App ID — more reliable
+      const steamCoverUrl = seedGame?.steamAppId
+        ? `https://cdn.akamai.steamstatic.com/steam/apps/${seedGame.steamAppId}/library_600x900_2x.jpg`
+        : null;
+
       await supabase
         .from("games")
         .update({
           igdb_id: igdbData.id,
-          cover_url: formatCoverUrl(igdbData.cover?.url),
+          cover_url: steamCoverUrl ?? formatCoverUrl(igdbData.cover?.url),
           summary: igdbData.summary || null,
           genres: igdbData.genres?.map((g) => g.name) || [],
-          platforms: igdbData.platforms?.map((p) => p.name) || [],
+          platforms: filterPlatforms(
+            igdbData.platforms?.map((p) => p.name) || []
+          ),
           developer: extractDeveloper(igdbData),
           publisher: extractPublisher(igdbData),
           release_date: igdbData.first_release_date
@@ -43,6 +62,14 @@ export async function ingestGameData(
                 .toISOString()
                 .split("T")[0]
             : null,
+        })
+        .eq("id", gameId);
+    } else if (seedGame?.steamAppId) {
+      // IGDB returned nothing — still set Steam cover art so the game isn't blank
+      await supabase
+        .from("games")
+        .update({
+          cover_url: `https://cdn.akamai.steamstatic.com/steam/apps/${seedGame.steamAppId}/library_600x900_2x.jpg`,
         })
         .eq("id", gameId);
     }
@@ -61,9 +88,6 @@ export async function ingestGameData(
         .eq("id", gameId);
     } else {
       // Fallback: use manual HLTB data from seed config
-      const seedGame = SEED_GAMES.find(
-        (g) => g.title.toLowerCase() === title.toLowerCase()
-      );
       if (seedGame?.hltb) {
         console.log(`Using seed HLTB data for ${title}`);
         await supabase
@@ -128,6 +152,56 @@ export async function ingestGameData(
     const redditSentiment = await searchRedditSentiment(title);
     if (redditSentiment) {
       console.log(`Reddit sentiment fetched for ${title}`);
+    }
+
+    // 6. Steam user reviews (optional — graceful failure)
+    try {
+      const { data: gameRecord } = await supabase
+        .from("games")
+        .select("steam_app_id")
+        .eq("id", gameId)
+        .single();
+
+      const steamAppId: number | null =
+        gameRecord?.steam_app_id ??
+        seedGame?.steamAppId ??
+        (await findSteamAppId(title));
+
+      if (steamAppId) {
+        if (!gameRecord?.steam_app_id) {
+          await supabase
+            .from("games")
+            .update({ steam_app_id: steamAppId })
+            .eq("id", gameId);
+        }
+
+        const steamData = await fetchSteamReviews(steamAppId);
+        if (steamData) {
+          await supabase
+            .from("games")
+            .update({
+              steam_review_score_desc: steamData.summary.review_score_desc,
+              steam_total_reviews: steamData.summary.total_reviews,
+            })
+            .eq("id", gameId);
+
+          await supabase.from("review_sources").insert({
+            game_id: gameId,
+            source_type: "steam",
+            channel_name: "Steam Users",
+            video_id: String(steamAppId),
+            video_title: `Steam Reviews (${steamData.summary.review_score_desc})`,
+            transcript: steamData.reviewText,
+            url: `https://store.steampowered.com/app/${steamAppId}`,
+          });
+
+          console.log(
+            `Steam reviews fetched for ${title}: ${steamData.summary.review_score_desc} (${steamData.summary.total_reviews.toLocaleString()} reviews)`
+          );
+        }
+      }
+    } catch (error) {
+      console.warn(`Steam ingestion failed for ${title}:`, error);
     }
 
     console.log(`Ingestion complete for: ${title}`);

@@ -3,24 +3,23 @@ import type { GameSignal } from "@/lib/types";
 
 type SignalListProps = {
   signals: GameSignal[];
+  columns?: boolean;
 };
 
-export function SignalList({ signals }: SignalListProps) {
+export function SignalList({ signals, columns = false }: SignalListProps) {
   const negative = signals.filter((s) => s.polarity === "negative");
   const positive = signals.filter((s) => s.polarity === "positive");
 
   return (
-    <div className="space-y-6">
-      <h3 className="text-sm font-semibold uppercase tracking-wider text-zinc-400">
-        Detected Signals
-      </h3>
-
+    <div className={columns ? "grid grid-cols-1 md:grid-cols-2 gap-6" : "space-y-4"}>
       {negative.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase text-red-400">
-            BS Detected
-          </h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center justify-between border-b border-outline-variant/10 pb-2 mb-3">
+            <span className="font-label text-[10px] tracking-widest uppercase text-red-400 font-bold">
+              BS Detected
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
             {negative
               .sort((a, b) => b.strength - a.strength)
               .map((signal) => {
@@ -41,10 +40,12 @@ export function SignalList({ signals }: SignalListProps) {
 
       {positive.length > 0 && (
         <div>
-          <h4 className="mb-2 text-xs font-semibold uppercase text-green-400">
-            Respect Detected
-          </h4>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex items-center justify-between border-b border-outline-variant/10 pb-2 mb-3">
+            <span className="font-label text-[10px] tracking-widest uppercase text-green-400 font-bold">
+              Respect Detected
+            </span>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
             {positive
               .sort((a, b) => b.strength - a.strength)
               .map((signal) => {
@@ -84,10 +85,7 @@ function SignalChip({
 
   return (
     <div className={`group relative rounded-lg border px-3 py-1.5 ${bgColor}`}>
-      <span className="text-xs font-medium">{label}</span>
-      <span className="ml-1.5 text-[10px] opacity-60">
-        {strength.toFixed(0)}/10
-      </span>
+      <span className="text-[10px] font-bold uppercase tracking-widest">{label}</span>
       {evidence && (
         <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-2 hidden w-64 -translate-x-1/2 rounded-lg bg-zinc-800 p-3 text-xs text-zinc-300 shadow-lg group-hover:block">
           &ldquo;{evidence}&rdquo;

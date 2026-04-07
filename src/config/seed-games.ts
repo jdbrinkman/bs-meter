@@ -4,6 +4,10 @@ export type SeedGame = {
   priceUsd: number;
   genres: string[];
   genreKey: string;
+  // Override Steam App ID — omit for console-exclusives not on Steam
+  steamAppId?: number;
+  // IGDB slug for exact lookup — use when text search returns wrong results
+  igdbSlug?: string;
   // Manual HLTB data (hours) as fallback when scraping fails
   hltb?: {
     mainStory: number;
@@ -20,6 +24,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 24.99,
     genres: ["Roguelike", "Action"],
     genreKey: "roguelike",
+    steamAppId: 1145360,
     hltb: { mainStory: 22, mainExtras: 45, completionist: 97 },
   },
   {
@@ -28,6 +33,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Horror", "Action"],
     genreKey: "horror-action",
+    steamAppId: 2050650,
     hltb: { mainStory: 16, mainExtras: 22, completionist: 55 },
   },
   {
@@ -36,6 +42,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Souls-like", "Open World", "RPG"],
     genreKey: "souls-like",
+    steamAppId: 1245620,
     hltb: { mainStory: 57, mainExtras: 98, completionist: 133 },
   },
   {
@@ -44,6 +51,8 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Action", "Adventure"],
     genreKey: "horror-action",
+    steamAppId: 2322010,
+    igdbSlug: "god-of-war-ragnarok",
     hltb: { mainStory: 26, mainExtras: 36, completionist: 54 },
   },
   {
@@ -52,9 +61,11 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["RPG", "CRPG"],
     genreKey: "open-world-rpg",
+    steamAppId: 1086940,
     hltb: { mainStory: 55, mainExtras: 100, completionist: 159 },
   },
   {
+    // Console exclusive — no Steam page
     title: "The Last of Us Part II Remastered",
     slug: "the-last-of-us-part-2-remastered",
     priceUsd: 49.99,
@@ -69,6 +80,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 39.99,
     genres: ["Open World", "RPG"],
     genreKey: "open-world-rpg",
+    steamAppId: 292030,
     hltb: { mainStory: 52, mainExtras: 105, completionist: 173 },
   },
   {
@@ -77,6 +89,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 14.99,
     genres: ["Metroidvania", "Indie"],
     genreKey: "metroidvania",
+    steamAppId: 367520,
     hltb: { mainStory: 27, mainExtras: 39, completionist: 63 },
   },
   {
@@ -85,6 +98,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Souls-like", "Action"],
     genreKey: "souls-like",
+    steamAppId: 814380,
     hltb: { mainStory: 30, mainExtras: 40, completionist: 75 },
   },
   {
@@ -93,6 +107,8 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Horror", "Action"],
     genreKey: "horror-action",
+    steamAppId: 1693980,
+    igdbSlug: "dead-space--1",
     hltb: { mainStory: 11, mainExtras: 15, completionist: 23 },
   },
   // Fair Trade candidates
@@ -102,6 +118,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["JRPG", "Action"],
     genreKey: "jrpg",
+    steamAppId: 2515020,
     hltb: { mainStory: 35, mainExtras: 55, completionist: 82 },
   },
   {
@@ -110,6 +127,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Open World", "RPG", "Action"],
     genreKey: "open-world-rpg",
+    steamAppId: 2420110,
     hltb: { mainStory: 29, mainExtras: 49, completionist: 80 },
   },
   {
@@ -118,6 +136,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Open World", "RPG", "Sci-Fi"],
     genreKey: "open-world-rpg",
+    steamAppId: 1716740,
     hltb: { mainStory: 30, mainExtras: 64, completionist: 139 },
   },
   // Content Sludge candidates
@@ -127,6 +146,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["JRPG", "Action"],
     genreKey: "jrpg",
+    steamAppId: 2909400,
     hltb: { mainStory: 42, mainExtras: 66, completionist: 100 },
   },
   {
@@ -135,6 +155,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Open World", "Action"],
     genreKey: "open-world-rpg",
+    // Not on Steam (Ubisoft Connect exclusive)
     hltb: { mainStory: 17, mainExtras: 31, completionist: 64 },
   },
   {
@@ -143,6 +164,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Open World", "Action", "RPG"],
     genreKey: "open-world-rpg",
+    steamAppId: 1680880,
     hltb: { mainStory: 17, mainExtras: 30, completionist: 52 },
   },
   {
@@ -151,6 +173,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["RPG", "Sci-Fi", "Action"],
     genreKey: "open-world-rpg",
+    // Available via EA App / Origin, not on Steam directly
     hltb: { mainStory: 17, mainExtras: 35, completionist: 55 },
   },
   {
@@ -159,6 +182,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 19.99,
     genres: ["Open World", "RPG", "Sci-Fi", "Action"],
     genreKey: "open-world-rpg",
+    // Available via EA App / Origin, not on Steam directly
     hltb: { mainStory: 18, mainExtras: 45, completionist: 90 },
   },
   {
@@ -167,6 +191,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Action RPG", "Looter"],
     genreKey: "open-world-rpg",
+    // Battle.net exclusive — not on Steam
     hltb: { mainStory: 22, mainExtras: 50, completionist: 150 },
   },
   {
@@ -175,6 +200,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 19.99,
     genres: ["Open World", "RPG"],
     genreKey: "open-world-rpg",
+    steamAppId: 1222690,
     hltb: { mainStory: 45, mainExtras: 80, completionist: 125 },
   },
   // Clock Puncher candidates
@@ -184,6 +210,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 59.99,
     genres: ["Open World", "RPG", "Action"],
     genreKey: "open-world-rpg",
+    steamAppId: 2208920,
     hltb: { mainStory: 60, mainExtras: 97, completionist: 148 },
   },
   {
@@ -192,6 +219,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["Open World", "Action", "RPG"],
     genreKey: "open-world-rpg",
+    steamAppId: 1496790,
     hltb: { mainStory: 17, mainExtras: 28, completionist: 42 },
   },
   {
@@ -200,6 +228,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 69.99,
     genres: ["FPS", "Open World"],
     genreKey: "fps-shooter",
+    steamAppId: 1294810,
     hltb: { mainStory: 12, mainExtras: 18, completionist: 30 },
   },
   {
@@ -208,6 +237,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 29.99,
     genres: ["Roguelike", "Action"],
     genreKey: "roguelike",
+    steamAppId: 1145350,
     hltb: { mainStory: 25, mainExtras: 55, completionist: 100 },
   },
   {
@@ -238,5 +268,24 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Metroidvania", "Indie", "Platformer"],
     genreKey: "platformer-metroidvania",
     hltb: { mainStory: 25, mainExtras: 40, completionist: 65 },
+  },
+  // Live Service
+  {
+    title: "Overwatch 2",
+    slug: "overwatch-2",
+    priceUsd: 0,
+    genres: ["Hero Shooter", "Multiplayer"],
+    genreKey: "multiplayer-shooter",
+    steamAppId: 2357570,
+    igdbSlug: "overwatch-2",
+  },
+  {
+    title: "Marvel Rivals",
+    slug: "marvel-rivals",
+    priceUsd: 0,
+    genres: ["Hero Shooter", "Multiplayer"],
+    genreKey: "multiplayer-shooter",
+    steamAppId: 2767030,
+    igdbSlug: "marvel-rivals",
   },
 ];

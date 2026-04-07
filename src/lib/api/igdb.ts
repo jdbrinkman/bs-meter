@@ -28,6 +28,24 @@ async function getAccessToken(): Promise<string> {
   return cachedToken.token;
 }
 
+const IGDB_FIELDS =
+  "name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date";
+
+// Mobile/handheld platforms that shouldn't appear for console/PC games
+const MOBILE_PLATFORMS = new Set([
+  "Android",
+  "iOS",
+  "Windows Phone",
+  "J2ME",
+  "Symbian",
+  "Palm OS",
+  "BlackBerry OS",
+]);
+
+export function filterPlatforms(platforms: string[]): string[] {
+  return platforms.filter((p) => !MOBILE_PLATFORMS.has(p));
+}
+
 export async function searchIGDB(title: string): Promise<IGDBGame | null> {
   const token = await getAccessToken();
 
@@ -38,10 +56,29 @@ export async function searchIGDB(title: string): Promise<IGDBGame | null> {
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/plain",
     },
-    body: `search "${title}"; fields name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date; limit 1;`,
+    body: `search "${title}"; fields ${IGDB_FIELDS}; limit 1;`,
   });
 
   if (!res.ok) throw new Error(`IGDB search failed: ${res.status}`);
+
+  const results: IGDBGame[] = await res.json();
+  return results[0] || null;
+}
+
+export async function searchIGDBBySlug(slug: string): Promise<IGDBGame | null> {
+  const token = await getAccessToken();
+
+  const res = await fetch("https://api.igdb.com/v4/games", {
+    method: "POST",
+    headers: {
+      "Client-ID": process.env.IGDB_CLIENT_ID!,
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "text/plain",
+    },
+    body: `fields ${IGDB_FIELDS}; where slug = "${slug}"; limit 1;`,
+  });
+
+  if (!res.ok) throw new Error(`IGDB slug lookup failed: ${res.status}`);
 
   const results: IGDBGame[] = await res.json();
   return results[0] || null;

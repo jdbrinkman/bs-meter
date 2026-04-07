@@ -3,11 +3,11 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
 import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
 import { SignalList } from "@/components/bs-meter/SignalList";
-import { getBSScoreLabel, getVerdictInfo } from "@/lib/scoring/brackets";
-import type { VerdictKey, GameSignal } from "@/lib/types";
+import { BSGauge } from "@/components/bs-meter/BSGauge";
+import { getBSScoreLabel } from "@/lib/scoring/brackets";
+import type { GameSignal } from "@/lib/types";
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -43,26 +43,63 @@ export default async function GameDetailPage({
   const reviewSources = game.review_sources || [];
 
   const bsLabel = score ? getBSScoreLabel(score.bs_score) : null;
-  const verdictInfo = score ? getVerdictInfo(score.verdict as VerdictKey) : null;
-
-  // Determine audit status label
-  const auditStatus =
-    score && score.bs_score <= 3
-      ? "VERIFIED CLEAN"
-      : score && score.bs_score >= 7
-      ? "HIGH BS DETECTED"
-      : "AUDITED";
-
   return (
     <div className="min-h-screen bg-background">
 
-      {/* ── HERO ── */}
-      <section className="px-6 md:px-8 py-12 md:py-16 border-b border-outline-variant/10 bg-surface-container-low">
-        <div className="mx-auto max-w-[1440px]">
-          <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:gap-12">
+      {/* ── HEADER — flat, open ── */}
+      <div className="mx-auto max-w-7xl px-6 md:px-12 pt-10 pb-8">
+        {game.genres?.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-5">
+            {game.genres.map((genre: string) => (
+              <span
+                key={genre}
+                className="bg-surface-container-high px-3 py-1 rounded-md text-[10px] font-label text-on-surface-variant tracking-widest uppercase"
+              >
+                {genre}
+              </span>
+            ))}
+          </div>
+        )}
+        <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-on-surface font-headline leading-none mb-6">
+          {game.title}
+        </h1>
+        <div className="flex flex-wrap gap-x-8 gap-y-3">
+          {game.developer && (
+            <div className="flex flex-col">
+              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Developer</span>
+              <span className="font-headline font-semibold text-sm text-on-surface">{game.developer}</span>
+            </div>
+          )}
+          {game.release_date && (
+            <div className="flex flex-col">
+              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Release</span>
+              <span className="font-headline font-semibold text-sm text-on-surface">
+                {new Date(game.release_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
+              </span>
+            </div>
+          )}
+          {game.price_usd && (
+            <div className="flex flex-col">
+              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Price</span>
+              <span className="font-headline font-semibold text-sm text-on-surface">${game.price_usd}</span>
+            </div>
+          )}
+          {game.platforms?.length > 0 && (
+            <div className="flex flex-col">
+              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Platform</span>
+              <span className="font-headline font-semibold text-sm text-on-surface">{game.platforms.slice(0, 2).join(" / ")}</span>
+            </div>
+          )}
+        </div>
+      </div>
 
-            {/* Cover image */}
-            <div className="relative aspect-[3/4] w-44 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container-high shadow-2xl md:w-52">
+      {/* ── FORENSIC GRID ── */}
+      <section className="mx-auto max-w-7xl px-6 md:px-12 pb-16">
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+
+          {/* Left col: sticky cover art */}
+          <div className="lg:col-span-4 lg:sticky lg:top-24">
+            <div className="relative overflow-hidden rounded-xl bg-surface-container aspect-[3/4]">
               {game.cover_url ? (
                 <Image
                   src={game.cover_url}
@@ -76,223 +113,65 @@ export default async function GameDetailPage({
                   No Cover
                 </div>
               )}
+              <div className="absolute inset-0 bg-gradient-to-t from-surface/80 to-transparent" />
             </div>
+          </div>
 
-            {/* Game info — grows to fill */}
-            <div className="flex min-w-0 flex-1 flex-col justify-between gap-6">
-              {/* Genre tags */}
-              {game.genres?.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {game.genres.map((genre: string) => (
-                    <span
-                      key={genre}
-                      className="bg-surface-container-high px-3 py-1 rounded-md text-xs font-label text-on-surface-variant tracking-widest uppercase"
-                    >
-                      {genre}
-                    </span>
-                  ))}
-                </div>
-              )}
+          {/* Right col: gauge + evidence */}
+          <div className="lg:col-span-8 space-y-6">
 
-              {/* Title */}
-              <h1 className="text-5xl font-black uppercase tracking-tighter text-on-surface font-headline md:text-7xl leading-none">
-                {game.title}
-              </h1>
-
-              {/* Metadata grid */}
-              <div className="grid grid-cols-2 gap-x-8 gap-y-4 py-6 border-y border-outline-variant/15 md:grid-cols-4">
-                {game.developer && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Developer
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {game.developer}
-                    </p>
-                  </div>
-                )}
-                {game.release_date && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Release Date
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {new Date(game.release_date).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-                {game.price_usd && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Price
-                    </p>
-                    <p className="font-headline font-bold text-base text-primary">
-                      ${game.price_usd}
-                    </p>
-                  </div>
-                )}
-                {(game.platforms?.length > 0) && (
-                  <div>
-                    <p className="text-[10px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      Platform
-                    </p>
-                    <p className="font-headline font-bold text-base text-on-surface">
-                      {game.platforms?.slice(0, 2).join(" / ")}
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              {/* Verdict badge */}
-              {score && (
-                <div className="flex items-center gap-4">
-                  <ScoreBracketBadge bracket={score.verdict as VerdictKey} />
-                  {score.genre_rule_applied && (
-                    <span className="text-xs font-label text-outline">
-                      {score.genre_rule_applied} weights
-                    </span>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* BS Score circle */}
-            {score && bsLabel && verdictInfo && (
-              <div className="flex flex-col items-center flex-shrink-0">
-                <div className="relative group">
-                  {/* Glow */}
-                  <div
-                    className="absolute inset-0 blur-[80px] rounded-full opacity-30 group-hover:opacity-50 transition-all duration-500"
-                    style={{ backgroundColor: bsLabel.color }}
-                  />
-                  {/* Circle */}
-                  <div
-                    className="relative w-56 h-56 md:w-64 md:h-64 rounded-full flex flex-col items-center justify-center bg-surface/60 backdrop-blur-xl"
-                    style={{
-                      border: `8px solid ${bsLabel.color}`,
-                      boxShadow: `0 0 60px ${bsLabel.color}20`,
-                    }}
-                  >
-                    <p className="absolute top-8 text-[9px] font-label uppercase tracking-[0.25em] text-on-surface-variant">
+            {/* Gauge card */}
+            {score && bsLabel && (
+              <div className="relative overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/10 p-8">
+                {/* Ambient glow */}
+                <div
+                  className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"
+                  style={{ backgroundColor: `${bsLabel.color}15` }}
+                />
+                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+                  {/* Gauge with label above and below */}
+                  <div className="flex flex-col items-center flex-shrink-0">
+                    <p className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant mb-2">
                       BS Meter Score
                     </p>
-                    <div
-                      className="text-7xl md:text-8xl font-black font-headline leading-none tabular-nums"
-                      style={{ color: bsLabel.color }}
-                    >
-                      {score.bs_score.toFixed(1)}
-                    </div>
-                    <div className="absolute bottom-10 flex flex-col items-center">
-                      <span className="text-[9px] font-label text-on-surface-variant tracking-widest uppercase mb-0.5">
-                        Friction Level
-                      </span>
-                      <span
-                        className="text-base font-headline font-bold"
-                        style={{ color: bsLabel.color }}
-                      >
-                        {bsLabel.label}
-                      </span>
-                    </div>
+                    <BSGauge score={score.bs_score} />
                   </div>
 
-                  {/* Confidence chip */}
-                  {score.confidence && (
-                    <div className="absolute -bottom-5 left-1/2 -translate-x-1/2 bg-surface-container px-4 py-2 rounded-xl border border-outline-variant/20 backdrop-blur-md whitespace-nowrap">
-                      <div className="flex items-center gap-2">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#45fec9" strokeWidth={2.5}>
-                          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
-                          <polyline points="22 4 12 14.01 9 11.01"/>
-                        </svg>
-                        <span className="text-xs font-headline font-bold text-on-surface">
-                          {(score.confidence * 100).toFixed(0)}% Confidence
-                        </span>
-                      </div>
+                  {/* Top reasons */}
+                  {score.top_reasons && score.top_reasons.length > 0 && (
+                    <div className="flex-1 space-y-3">
+                      {score.top_reasons.slice(0, 3).map((reason: string, i: number) => (
+                        <div key={i} className="flex gap-3 items-start">
+                          <div
+                            className="w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-black font-headline mt-0.5"
+                            style={{ backgroundColor: `${bsLabel.color}20`, color: bsLabel.color }}
+                          >
+                            {i + 1}
+                          </div>
+                          <p className="text-on-surface-variant font-body text-sm leading-relaxed">
+                            {reason}
+                          </p>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>
-
-                {/* OpenCritic score below */}
-                {game.opencritic_score && (
-                  <div className="mt-10 text-center">
-                    <p className="text-[9px] font-label uppercase tracking-widest text-on-surface-variant mb-1">
-                      OpenCritic
-                    </p>
-                    <p className="text-2xl font-black font-headline text-on-surface">
-                      {game.opencritic_score}
-                      <span className="text-sm font-normal text-outline">/100</span>
-                    </p>
-                    {game.opencritic_tier && (
-                      <p className="text-[10px] font-label text-outline mt-0.5">{game.opencritic_tier}</p>
-                    )}
-                  </div>
-                )}
               </div>
             )}
+
+            {/* Evidence — 2 columns */}
+            {signals.length > 0 && (
+              <div className="rounded-xl bg-surface-container-low border border-outline-variant/10 p-6">
+                <h3 className="font-headline text-lg font-bold tracking-tight uppercase mb-5">
+                  The Evidence
+                </h3>
+                <SignalList signals={signals} columns={true} />
+              </div>
+            )}
+
           </div>
         </div>
       </section>
-
-      {/* ── AUDIT REPORT ── */}
-      {score && (
-        <section className="mx-auto max-w-[1440px] px-6 md:px-8 py-16">
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-10 gap-6">
-            <div className="max-w-2xl">
-              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
-                The Audit Report
-              </h2>
-              {score.summary && (
-                <p className="text-on-surface-variant font-body leading-relaxed">
-                  {score.summary}
-                </p>
-              )}
-            </div>
-            <div className="flex-shrink-0 text-right">
-              <span className="text-[10px] font-label uppercase tracking-widest text-primary mb-2 block">
-                Audit Status
-              </span>
-              <span
-                className="px-4 py-2 border rounded-lg font-headline font-bold text-sm"
-                style={{
-                  color: bsLabel?.color,
-                  borderColor: `${bsLabel?.color}40`,
-                  backgroundColor: `${bsLabel?.color}10`,
-                }}
-              >
-                {auditStatus}
-              </span>
-            </div>
-          </div>
-
-          {/* Top reasons as cards */}
-          {score.top_reasons && score.top_reasons.length > 0 && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {score.top_reasons.slice(0, 3).map((reason: string, i: number) => (
-                <div
-                  key={i}
-                  className="p-6 bg-surface-container hover:bg-surface-container-high transition-all rounded-2xl"
-                >
-                  <div
-                    className="w-8 h-8 rounded-full flex items-center justify-center mb-4 text-sm font-black font-headline"
-                    style={{
-                      backgroundColor: `${bsLabel?.color}20`,
-                      color: bsLabel?.color,
-                    }}
-                  >
-                    {i + 1}
-                  </div>
-                  <p className="text-on-surface-variant font-body text-sm leading-relaxed">
-                    {reason}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-      )}
 
       {/* ── DIMENSION BREAKDOWN ── */}
       {score && (
@@ -319,14 +198,15 @@ export default async function GameDetailPage({
         </section>
       )}
 
+
       {/* ── BODY ── */}
       <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">
 
-        {/* Time to Beat + Critics side by side */}
-        <div className="grid gap-6 md:grid-cols-2">
+        {/* Time to Beat + Steam + OpenCritic */}
+        <div className="grid gap-6 md:grid-cols-3">
           {(game.main_story_hours || game.main_extras_hours || game.completionist_hours) && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-              <h3 className="mb-5 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
                 Time to Beat
               </h3>
               <div className="space-y-3">
@@ -361,14 +241,54 @@ export default async function GameDetailPage({
             </div>
           )}
 
+          {game.steam_review_score_desc && (
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+                Steam Users
+              </h3>
+              <div>
+                <p className="text-2xl font-black font-headline text-on-surface mt-4">
+                  {game.steam_review_score_desc}
+                </p>
+                {game.steam_total_reviews && (
+                  <p className="mt-1 text-xs text-outline font-label">
+                    {game.steam_total_reviews.toLocaleString()} reviews
+                  </p>
+                )}
+              </div>
+              {game.steam_app_id && (
+                <a
+                  href={`https://store.steampowered.com/app/${game.steam_app_id}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-4 inline-block text-xs font-label text-outline hover:text-on-surface transition-colors"
+                >
+                  View on Steam →
+                </a>
+              )}
+            </div>
+          )}
+
+          {game.opencritic_score && (
+            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
+              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
+                OpenCritic
+              </h3>
+              <div>
+                <p className="text-5xl font-black font-headline text-on-surface mt-4">
+                  {Math.round(game.opencritic_score)}
+                </p>
+                {game.opencritic_tier && (
+                  <p className="mt-1 text-xs text-outline font-label">
+                    {game.opencritic_tier}
+                  </p>
+                )}
+              </div>
+              <div className="mt-4" />
+            </div>
+          )}
         </div>
 
-        {/* Signals */}
-        {signals.length > 0 && (
-          <div className="mt-6 rounded-2xl border border-outline-variant/20 bg-surface-container p-6">
-            <SignalList signals={signals} />
-          </div>
-        )}
 
         {/* Review Sources */}
         {reviewSources.length > 0 && (

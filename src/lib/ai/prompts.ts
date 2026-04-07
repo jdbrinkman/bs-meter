@@ -20,13 +20,24 @@ export function buildAnalysisPrompt(
       `  - ${s.key} (${s.polarity}): ${s.description}`
   ).join("\n");
 
-  const transcriptSections = reviewSources
-    .filter((rs) => rs.transcript)
+  const youtubeSources = reviewSources.filter(
+    (rs) => rs.source_type === "youtube" && rs.transcript
+  );
+  const steamSources = reviewSources.filter(
+    (rs) => rs.source_type === "steam" && rs.transcript
+  );
+
+  const transcriptSections = youtubeSources
     .map(
       (rs) =>
-        `=== ${rs.channel_name || rs.source_type}: "${rs.video_title || "Review"}" ===\n${rs.transcript}`
+        `=== ${rs.channel_name || "Reviewer"}: "${rs.video_title || "Review"}" ===\n${rs.transcript}`
     )
     .join("\n\n");
+
+  const steamSection =
+    steamSources.length > 0
+      ? `\n## STEAM USER REVIEWS\n${steamSources.map((rs) => rs.transcript).join("\n\n")}\n`
+      : "";
 
   const redditSection = redditSentiment
     ? `\n## REDDIT USER SENTIMENT\n${redditSentiment}\n`
@@ -45,10 +56,10 @@ export function buildAnalysisPrompt(
 - Bloat Ratio (Main/Completionist): ${bloatRatio}
 - OpenCritic Score: ${game.opencritic_score || "?"}/100 (${game.opencritic_tier || "Unknown"})
 
-## REVIEWER TRANSCRIPTS (${reviewSources.filter((rs) => rs.transcript).length} sources)
+## REVIEWER TRANSCRIPTS (${youtubeSources.length} YouTube sources)
 
 ${transcriptSections || "No transcripts available — base analysis on metadata and OpenCritic data only."}
-${redditSection}
+${steamSection}${redditSection}
 ## SCORING INSTRUCTIONS
 
 Score each of the 9 dimensions from 1.0 to 10.0 (10 = perfect, 1 = catastrophic):
@@ -83,7 +94,7 @@ ${genreRule.aiGuidance}
 - Score dimensions relevant to this genre based on all available evidence
 - If a dimension is nearly irrelevant to this genre (e.g., boss_difficulty for puzzle games), score it 5 as neutral — don't leave it at 1 or 10
 - Be honest and critical. Don't round up to protect popular games
-- Use Reddit user sentiment to catch bugs, technical failures, or community frustrations that critic reviews missed
+- Use Steam user reviews and Reddit sentiment to catch bugs, crashes, technical failures, or community frustrations that critic reviews missed
 - If review data is sparse, state lower confidence and widen your estimates
 
 ## SIGNAL DETECTION

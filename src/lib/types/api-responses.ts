@@ -40,7 +40,7 @@ export type YouTubeSearchResult = {
 export type ReviewSource = {
   id: string;
   game_id: string;
-  source_type: "youtube" | "opencritic" | "hltb";
+  source_type: "youtube" | "opencritic" | "hltb" | "steam";
   channel_name: string | null;
   video_id: string | null;
   video_title: string | null;

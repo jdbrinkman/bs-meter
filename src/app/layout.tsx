@@ -23,7 +23,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "BS Meter — Cut Through the Content",
+  title: "BS Meter — Find Games that Respect your Time",
   description:
     "AI-powered game scoring that detects bloat, filler, and grind. Find games that respect your time.",
 };

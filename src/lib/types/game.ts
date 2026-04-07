@@ -12,6 +12,11 @@ export type Game = {
   igdb_id: number | null;
   opencritic_id: number | null;
   hltb_id: number | null;
+  steam_app_id: number | null;
+
+  // Steam user review data
+  steam_review_score_desc: string | null;
+  steam_total_reviews: number | null;
 
   // Metadata
   cover_url: string | null;
