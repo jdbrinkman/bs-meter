@@ -1,7 +1,18 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BSMeterBars } from "@/components/bs-meter/BSMeterBars";
 import type { VerdictKey } from "@/lib/types";
+
+// 4-section color system matching the gauge
+const SCORE_SECTIONS = [
+  { max: 2.5, color: "#22C55E", label: "No wasted time" },
+  { max: 5,   color: "#EAB308", label: "Minor friction" },
+  { max: 7.5, color: "#F97316", label: "Noticeable padding" },
+  { max: 10,  color: "#EF4444", label: "Significant bloat" },
+];
+
+function getSection(score: number) {
+  return SCORE_SECTIONS.find((s) => score <= s.max) ?? SCORE_SECTIONS[3];
+}
 
 type GameCardProps = {
   slug: string;
@@ -13,19 +24,20 @@ type GameCardProps = {
   verdict: VerdictKey | null;
 };
 
-export function GameCard({
-  slug,
-  title,
-  coverUrl,
-  developer,
-  genres,
-  bsScore,
-  verdict,
-}: GameCardProps) {
+export function GameCard({ slug, title, coverUrl, bsScore }: GameCardProps) {
+  const section = bsScore !== null ? getSection(bsScore) : null;
+  const color = section?.color ?? null;
+
   return (
     <Link
       href={`/games/${slug}`}
-      className="group overflow-hidden rounded-2xl border border-outline-variant/20 bg-surface-container transition-all hover:bg-surface-container-high hover:border-outline-variant/50 hover:shadow-lg"
+      className="group overflow-hidden rounded-2xl bg-surface-container transition-all hover:bg-surface-container-high"
+      style={color ? {
+        border: `1px solid ${color}50`,
+        boxShadow: `0 0 12px ${color}30, 0 0 28px ${color}15`,
+      } : {
+        border: "1px solid rgba(255,255,255,0.08)",
+      }}
     >
       <div className="relative aspect-[3/4] w-full overflow-hidden bg-surface-container-high">
         {coverUrl ? (
@@ -41,28 +53,27 @@ export function GameCard({
             No Cover
           </div>
         )}
-      </div>
-      <div className="p-4">
-        <div className="flex items-start justify-between gap-2">
-          <div className="min-w-0">
-            <h3 className="truncate text-sm font-bold font-headline text-on-surface">
-              {title}
-            </h3>
-            {developer && (
-              <p className="truncate text-xs text-on-surface-variant font-body mt-0.5">{developer}</p>
-            )}
-            {genres.length > 0 && (
-              <p className="mt-1 truncate text-xs text-outline font-label">
-                {genres.slice(0, 2).join(" / ")}
-              </p>
-            )}
-          </div>
-        </div>
-        {bsScore !== null && (
-          <div className="mt-3">
-            <BSMeterBars bsScore={bsScore} />
+
+        {/* Gradient scrim */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-50 transition-opacity duration-500 pointer-events-none" />
+
+        {/* Label overlay */}
+        {section && (
+          <div className="absolute bottom-3 left-3">
+            <span
+              className="text-[8px] font-headline font-black uppercase tracking-[0.1em] drop-shadow-md"
+              style={{ color: section.color }}
+            >
+              {section.label}
+            </span>
           </div>
         )}
+      </div>
+
+      <div className="px-3 py-2">
+        <h3 className="truncate text-sm font-bold font-headline text-on-surface">
+          {title}
+        </h3>
       </div>
     </Link>
   );

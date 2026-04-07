@@ -4,8 +4,17 @@ import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { GameCarousel } from "@/components/game/GameCarousel";
-import { BSMeterBars } from "@/components/bs-meter/BSMeterBars";
 import type { VerdictKey } from "@/lib/types";
+
+const SCORE_SECTIONS = [
+  { max: 2.5, color: "#22C55E", label: "No wasted time" },
+  { max: 5,   color: "#EAB308", label: "Minor friction" },
+  { max: 7.5, color: "#F97316", label: "Noticeable padding" },
+  { max: 10,  color: "#EF4444", label: "Significant bloat" },
+];
+function getSection(score: number) {
+  return SCORE_SECTIONS.find((s) => score <= s.max) ?? SCORE_SECTIONS[3];
+}
 
 type GameRow = {
   slug: string;
@@ -134,13 +143,24 @@ export default async function HomePage() {
 }
 
 function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
+  const section = game.scores ? getSection(game.scores.bs_score) : null;
+  const color = section?.color ?? null;
+
   return (
     <Link
       href={`/games/${game.slug}`}
       className="group flex-shrink-0 w-36 md:w-40"
     >
       {/* Cover */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3">
+      <div
+        className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3"
+        style={color ? {
+          border: `1px solid ${color}50`,
+          boxShadow: `0 0 12px ${color}30, 0 0 28px ${color}15`,
+        } : {
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
         {game.cover_url ? (
           <Image
             src={game.cover_url}
@@ -155,15 +175,27 @@ function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
             No Cover
           </div>
         )}
+
+        {/* Gradient scrim */}
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-50 transition-opacity duration-500 pointer-events-none" />
+
+        {/* Label overlay */}
+        {section && (
+          <div className="absolute bottom-3 left-3">
+            <span
+              className="text-[8px] font-headline font-black uppercase tracking-[0.1em] drop-shadow-md"
+              style={{ color: section.color }}
+            >
+              {section.label}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Info */}
-      <p className="text-sm font-headline font-bold text-on-surface truncate mb-1.5">
+      <p className="text-sm font-headline font-bold text-on-surface truncate">
         {game.title}
       </p>
-      {game.scores && (
-        <BSMeterBars bsScore={game.scores.bs_score} />
-      )}
     </Link>
   );
 }
