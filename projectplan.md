@@ -181,20 +181,34 @@ bs-meter/
 - Deploy to Vercel
 
 ### Phase 2 — Polish (weeks 4-5)
-- Full-text search (Postgres tsvector)
-- Genre/bracket filter UI
-- SEO + dynamic OG images
-- Loading skeletons + error boundaries
-- Game comparison view
-- Simple feedback (helpful yes/no)
-- Expand to 50 games
+- [x] Full UI redesign on `new-ui` branch (Stitch-inspired editorial layout)
+- [x] Replaced score circle with semicircular needle gauge (BSGauge component)
+- [x] Gauge segment hover tooltips with label + plain-English descriptions
+- [x] Game detail page: flat open header, 12-col forensic grid, sticky cover art
+- [x] Evidence section: 2-col BS/Respect chip layout, labels only (no strength numbers)
+- [x] Removed confidence chip, audit report AI noise
+- [x] Added Steam reviews + OpenCritic cards to bottom of game page
+- [x] Separated ingest pipeline from scoring (`/api/ingest` + `/api/score` routes)
+- [x] Fixed IGDB fuzzy search issues (God of War, Dead Space) with exact slug lookup
+- [x] Steam CDN cover art as primary source when steamAppId is present
+- [x] Added Overwatch 2 and Marvel Rivals to seed list
+- [x] Fixed Hades II Steam App ID (1659760 → 1145350)
+- [x] Updated home page headline and subheading
+- [x] Merged `new-ui` → `main`
+- [ ] Full-text search (Postgres tsvector)
+- [ ] Genre/bracket filter UI
+- [ ] SEO + dynamic OG images
+- [ ] Loading skeletons + error boundaries
+- [ ] Game comparison view
+- [ ] Simple feedback (helpful yes/no)
+- [ ] Expand to 50 games
 
 ### Phase 3 — Scale (week 6+)
-- Game request form (users suggest, admin approves)
-- Scheduled re-analysis cron
-- User accounts (Supabase Auth)
-- Community features
-- Publisher BS leaderboard
+- [ ] Game request form (users suggest, admin approves)
+- [ ] Scheduled re-analysis cron
+- [ ] User accounts (Supabase Auth)
+- [ ] Community features
+- [ ] Publisher BS leaderboard
 
 ---
 
