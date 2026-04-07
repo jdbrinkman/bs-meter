@@ -176,26 +176,20 @@ function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
           </div>
         )}
 
-        {/* Gradient scrim */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-50 transition-opacity duration-500 pointer-events-none" />
-
-        {/* Label overlay */}
-        {section && (
-          <div className="absolute bottom-3 left-3">
-            <span
-              className="text-[8px] font-headline font-black uppercase tracking-[0.1em] drop-shadow-md"
-              style={{ color: section.color }}
-            >
-              {section.label}
-            </span>
-          </div>
-        )}
       </div>
 
       {/* Info */}
-      <p className="text-sm font-headline font-bold text-on-surface truncate">
+      <p className="text-sm font-headline font-bold text-on-surface truncate mt-2">
         {game.title}
       </p>
+      {section && (
+        <p
+          className="mt-0.5 text-[8px] font-headline font-black uppercase tracking-[0.1em]"
+          style={{ color: section.color }}
+        >
+          {section.label}
+        </p>
+      )}
     </Link>
   );
 }

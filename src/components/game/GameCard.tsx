@@ -54,26 +54,20 @@ export function GameCard({ slug, title, coverUrl, bsScore }: GameCardProps) {
           </div>
         )}
 
-        {/* Gradient scrim */}
-        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent opacity-80 group-hover:opacity-50 transition-opacity duration-500 pointer-events-none" />
-
-        {/* Label overlay */}
-        {section && (
-          <div className="absolute bottom-3 left-3">
-            <span
-              className="text-[8px] font-headline font-black uppercase tracking-[0.1em] drop-shadow-md"
-              style={{ color: section.color }}
-            >
-              {section.label}
-            </span>
-          </div>
-        )}
       </div>
 
       <div className="px-3 py-2">
         <h3 className="truncate text-sm font-bold font-headline text-on-surface">
           {title}
         </h3>
+        {section && (
+          <p
+            className="mt-0.5 text-[8px] font-headline font-black uppercase tracking-[0.1em]"
+            style={{ color: section.color }}
+          >
+            {section.label}
+          </p>
+        )}
       </div>
     </Link>
   );
