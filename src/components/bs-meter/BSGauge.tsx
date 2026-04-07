@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import { getBSScoreLabel } from "@/lib/scoring/brackets";
 
 type BSGaugeProps = {
@@ -49,10 +52,26 @@ function buildSegment(startDeg: number, endDeg: number): string {
 
 // 4 equal sections across 180°, each 45°
 const SEGMENTS = [
-  { startDeg: 180, endDeg: 225, color: "#22C55E" }, // Green   — 0–2.5
-  { startDeg: 225, endDeg: 270, color: "#EAB308" }, // Yellow  — 2.5–5
-  { startDeg: 270, endDeg: 315, color: "#F97316" }, // Orange  — 5–7.5
-  { startDeg: 315, endDeg: 360, color: "#EF4444" }, // Red     — 7.5–10
+  {
+    startDeg: 180, endDeg: 225, color: "#22C55E",
+    label: "Almost no wasted time",
+    desc: "The game respects your time. Nearly every moment has purpose.",
+  },
+  {
+    startDeg: 225, endDeg: 270, color: "#EAB308",
+    label: "Minor friction",
+    desc: "Some padding exists but doesn't significantly hurt the experience.",
+  },
+  {
+    startDeg: 270, endDeg: 315, color: "#F97316",
+    label: "Noticeable padding",
+    desc: "Meaningful bloat detected. Filler content is a recurring issue.",
+  },
+  {
+    startDeg: 315, endDeg: 360, color: "#EF4444",
+    label: "Significant bloat",
+    desc: "Serious time waste. Expect heavy grind, filler, or manipulation.",
+  },
 ];
 
 // Small gap between segments (degrees)
@@ -62,12 +81,15 @@ export function BSGauge({ score, showLabel = true }: BSGaugeProps) {
   const { label, color } = getBSScoreLabel(score);
   const needleAngle = scoreToAngle(score);
   const needleTip = polarToXY(NEEDLE_R, needleAngle);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
 
   // Needle as a thin triangle: tip + two base points perpendicular to angle
   const perpAngle = needleAngle + 90;
   const baseWidth = 3;
   const baseA = polarToXY(baseWidth, perpAngle);
   const baseB = polarToXY(baseWidth, perpAngle + 180);
+
+  const hoveredSeg = hoveredIndex !== null ? SEGMENTS[hoveredIndex] : null;
 
   return (
     <div className="relative flex flex-col items-center group">
@@ -88,12 +110,15 @@ export function BSGauge({ score, showLabel = true }: BSGaugeProps) {
         style={{ overflow: "visible" }}
       >
         {/* ── 4 colored segments ── */}
-        {SEGMENTS.map((seg) => (
+        {SEGMENTS.map((seg, i) => (
           <path
             key={seg.color}
             d={buildSegment(seg.startDeg + GAP / 2, seg.endDeg - GAP / 2)}
             fill={seg.color}
-            opacity={0.85}
+            opacity={hoveredIndex === null || hoveredIndex === i ? 0.85 : 0.35}
+            className="cursor-pointer transition-opacity duration-150"
+            onMouseEnter={() => setHoveredIndex(i)}
+            onMouseLeave={() => setHoveredIndex(null)}
           />
         ))}
 
@@ -117,6 +142,21 @@ export function BSGauge({ score, showLabel = true }: BSGaugeProps) {
         <circle cx={CX} cy={CY} r={3} fill={color} />
 
       </svg>
+
+      {/* ── Segment tooltip ── */}
+      {hoveredSeg && (
+        <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 w-56 rounded-xl bg-surface-container-highest border border-outline-variant/20 p-3 text-center pointer-events-none z-20 shadow-xl">
+          <p
+            className="text-xs font-bold font-headline uppercase tracking-widest"
+            style={{ color: hoveredSeg.color }}
+          >
+            {hoveredSeg.label}
+          </p>
+          <p className="text-[11px] text-on-surface-variant font-body mt-1 leading-snug">
+            {hoveredSeg.desc}
+          </p>
+        </div>
+      )}
 
       {/* ── Text below the gauge ── */}
       {showLabel && (

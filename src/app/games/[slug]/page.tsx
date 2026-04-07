@@ -81,7 +81,7 @@ export default async function GameDetailPage({
           {game.price_usd && (
             <div className="flex flex-col">
               <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Price</span>
-              <span className="font-headline font-semibold text-sm text-primary">${game.price_usd}</span>
+              <span className="font-headline font-semibold text-sm text-on-surface">${game.price_usd}</span>
             </div>
           )}
           {game.platforms?.length > 0 && (
