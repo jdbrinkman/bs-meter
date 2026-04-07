@@ -3,8 +3,8 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBSScoreLabel } from "@/lib/scoring/brackets";
 import { GameCarousel } from "@/components/game/GameCarousel";
+import { BSMeterBars } from "@/components/bs-meter/BSMeterBars";
 import type { VerdictKey } from "@/lib/types";
 
 type GameRow = {
@@ -134,8 +134,6 @@ export default async function HomePage() {
 }
 
 function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
-  const bsLabel = game.scores ? getBSScoreLabel(game.scores.bs_score) : null;
-
   return (
     <Link
       href={`/games/${game.slug}`}
@@ -160,24 +158,11 @@ function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
       </div>
 
       {/* Info */}
-      <p className="text-sm font-headline font-bold text-on-surface truncate mb-1">
+      <p className="text-sm font-headline font-bold text-on-surface truncate mb-1.5">
         {game.title}
       </p>
-      {bsLabel && game.scores && (
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs font-headline font-black tabular-nums px-2 py-0.5 rounded-md"
-            style={{
-              backgroundColor: `${bsLabel.color}20`,
-              color: bsLabel.color,
-            }}
-          >
-            {game.scores.bs_score.toFixed(1)}
-          </span>
-          <span className="text-xs font-label text-on-surface-variant truncate">
-            {bsLabel.label}
-          </span>
-        </div>
+      {game.scores && (
+        <BSMeterBars bsScore={game.scores.bs_score} />
       )}
     </Link>
   );

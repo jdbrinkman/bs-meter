@@ -75,7 +75,7 @@ export function getVerdictInfo(key: VerdictKey): VerdictInfo {
 
 // BS Score legend labels
 export const BS_SCORE_LABELS: { max: number; label: string; color: string }[] = [
-  { max: 2,  label: "Almost no wasted time",        color: "#22C55E" },
+  { max: 2,  label: "No wasted time",                color: "#22C55E" },
   { max: 4,  label: "Minor friction",                color: "#84CC16" },
   { max: 6,  label: "Noticeable padding",            color: "#EAB308" },
   { max: 8,  label: "Significant bloat",             color: "#F97316" },

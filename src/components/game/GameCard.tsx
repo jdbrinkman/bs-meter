@@ -1,7 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ScoreGauge } from "@/components/bs-meter/ScoreGauge";
-import { ScoreBracketBadge } from "@/components/bs-meter/ScoreBracketBadge";
+import { BSMeterBars } from "@/components/bs-meter/BSMeterBars";
 import type { VerdictKey } from "@/lib/types";
 
 type GameCardProps = {
@@ -58,13 +57,10 @@ export function GameCard({
               </p>
             )}
           </div>
-          {bsScore !== null && (
-            <ScoreGauge bsScore={bsScore} size="sm" />
-          )}
         </div>
-        {verdict && (
+        {bsScore !== null && (
           <div className="mt-3">
-            <ScoreBracketBadge bracket={verdict} />
+            <BSMeterBars bsScore={bsScore} />
           </div>
         )}
       </div>
