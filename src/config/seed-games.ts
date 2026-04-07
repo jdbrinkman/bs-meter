@@ -237,7 +237,7 @@ export const SEED_GAMES: SeedGame[] = [
     priceUsd: 29.99,
     genres: ["Roguelike", "Action"],
     genreKey: "roguelike",
-    steamAppId: 1659760,
+    steamAppId: 1145350,
     hltb: { mainStory: 25, mainExtras: 55, completionist: 100 },
   },
   {
