@@ -56,7 +56,7 @@ export default async function HomePage() {
       <section className="px-8 pt-8 pb-6 border-b border-outline-variant/10">
         <div className="mx-auto max-w-[1440px]">
           <h1 className="font-headline font-black tracking-tighter text-on-surface leading-none mb-2 text-4xl md:text-5xl">
-            Find games that actually respect your time
+            Find games that respect your time
           </h1>
           <p className="text-on-surface-variant font-body text-sm">
             We audit every title for hidden bloat, mindless grinding, and predatory microtransactions.
