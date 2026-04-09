@@ -122,7 +122,7 @@ export default async function GameDetailPage({
 
             {/* Gauge card */}
             {score && bsLabel && (
-              <div className="relative overflow-hidden rounded-xl bg-surface-container-low border border-outline-variant/10 p-8">
+              <div className="relative overflow-visible rounded-xl bg-surface-container-low border border-outline-variant/10 p-8">
                 {/* Ambient glow */}
                 <div
                   className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"
