@@ -45,13 +45,20 @@ export default async function HomePage() {
     // Supabase not configured yet — show empty state
   }
 
-  const topRated = [...formattedGames]
-    .filter((g) => g.scores)
-    .sort((a, b) => (a.scores?.bs_score || 10) - (b.scores?.bs_score || 10));
+  const gamesWithScores = formattedGames.filter((g) => g.scores !== null);
 
-  const mostBloated = [...formattedGames]
-    .filter((g) => g.scores)
-    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0));
+  const tierGroups = BS_TIERS.map((tier, i) => {
+    const min = i === 0 ? -Infinity : BS_TIERS[i - 1].max;
+    return {
+      tier,
+      games: gamesWithScores
+        .filter((g) => {
+          const score = g.scores!.bs_score;
+          return score > min && score <= tier.max;
+        })
+        .sort((a, b) => a.scores!.bs_score - b.scores!.bs_score),
+    };
+  });
 
   return (
     <div className="min-h-screen">
@@ -68,58 +75,42 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── MUST PLAY ── */}
-      {topRated.length > 0 && (
-        <section className="py-10 border-b border-outline-variant/10">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="flex items-baseline justify-between px-8 mb-6">
-              <div>
-                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
-                  Must Play
-                </h2>
-                <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+      {/* ── TIER SECTIONS ── */}
+      {tierGroups.map(({ tier, games }) =>
+        games.length > 0 && (
+          <section key={tier.label} className="py-10 border-b border-outline-variant/10">
+            <div className="mx-auto max-w-[1440px]">
+              <div className="flex items-baseline justify-between px-8 mb-6">
+                <div>
+                  <h2
+                    className="font-headline font-bold text-2xl tracking-tighter"
+                    style={{ color: tier.color }}
+                  >
+                    {tier.label}
+                  </h2>
+                  <div
+                    className="w-8 h-0.5 mt-1.5 rounded-full"
+                    style={{ backgroundColor: tier.color }}
+                  />
+                  <p className="mt-2 text-xs text-on-surface-variant font-label">
+                    {tier.desc}
+                  </p>
+                </div>
+                <Link
+                  href="/games"
+                  className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
+                >
+                  See All →
+                </Link>
               </div>
-              <Link
-                href="/games"
-                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
-              >
-                See All →
-              </Link>
+              <GameCarousel>
+                {games.map((game, i) => (
+                  <GameRowCard key={game.slug} game={game} eager={i === 0} />
+                ))}
+              </GameCarousel>
             </div>
-            <GameCarousel>
-              {topRated.map((game, i) => (
-                <GameRowCard key={game.slug} game={game} eager={i === 0} />
-              ))}
-            </GameCarousel>
-          </div>
-        </section>
-      )}
-
-      {/* ── HIGHEST BS SCORE ── */}
-      {mostBloated.length > 0 && (
-        <section className="py-10 border-b border-outline-variant/10">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="flex items-baseline justify-between px-8 mb-6">
-              <div>
-                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
-                  Highest BS Score
-                </h2>
-                <div className="w-8 h-0.5 bg-error mt-1.5 rounded-full" />
-              </div>
-              <Link
-                href="/games"
-                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
-              >
-                See All →
-              </Link>
-            </div>
-            <GameCarousel>
-              {mostBloated.map((game, i) => (
-                <GameRowCard key={game.slug} game={game} eager={i === 0} />
-              ))}
-            </GameCarousel>
-          </div>
-        </section>
+          </section>
+        )
       )}
 
       {/* ── EMPTY STATE ── */}
