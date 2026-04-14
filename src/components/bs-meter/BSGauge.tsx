@@ -27,6 +27,12 @@ function fmt(n: number) {
   return n.toFixed(3);
 }
 
+// Derive label/color from the same 4-section boundaries used by the visual arcs
+function getSegmentForScore(score: number) {
+  const idx = Math.min(Math.floor(score / 2.5), 3);
+  return SEGMENTS[idx];
+}
+
 // score 0 = 180° (left/green), score 10 = 360° (right/red)
 function scoreToAngle(score: number) {
   return 180 + (score / 10) * 180;
@@ -54,23 +60,23 @@ function buildSegment(startDeg: number, endDeg: number): string {
 const SEGMENTS = [
   {
     startDeg: 180, endDeg: 225, color: "#22C55E",
-    label: "Almost no wasted time",
-    desc: "The game respects your time. Nearly every moment has purpose.",
+    label: "Respectful",
+    desc: "Tight pacing with no filler. Every hour earns its place.",
   },
   {
     startDeg: 225, endDeg: 270, color: "#EAB308",
-    label: "Minor friction",
-    desc: "Some padding exists but doesn't significantly hurt the experience.",
+    label: "Tolerable",
+    desc: "Some repetition or padding, but nothing that derails the experience.",
   },
   {
     startDeg: 270, endDeg: 315, color: "#F97316",
-    label: "Noticeable padding",
-    desc: "Meaningful bloat detected. Filler content is a recurring issue.",
+    label: "Tedious",
+    desc: "Routine filler regularly gets in the way of the good stuff.",
   },
   {
     startDeg: 315, endDeg: 360, color: "#EF4444",
-    label: "Significant bloat",
-    desc: "Serious time waste. Expect heavy grind, filler, or manipulation.",
+    label: "Exploitative",
+    desc: "Deliberately wastes your time through grind, gating, or monetization.",
   },
 ];
 
@@ -78,7 +84,7 @@ const SEGMENTS = [
 const GAP = 1.5;
 
 export function BSGauge({ score, showLabel = true }: BSGaugeProps) {
-  const { label, color } = getBSScoreLabel(score);
+  const { label, color } = getSegmentForScore(score);
   const needleAngle = scoreToAngle(score);
   const needleTip = polarToXY(NEEDLE_R, needleAngle);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);

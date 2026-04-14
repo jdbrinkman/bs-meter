@@ -1,37 +1,66 @@
-import { VERDICTS, BS_SCORE_LABELS } from "@/lib/scoring/brackets";
-import { GENRE_RULES } from "@/config/genre-weights";
 import { NEGATIVE_SIGNALS, POSITIVE_SIGNALS } from "@/config/signal-taxonomy";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
-import type { VerdictKey } from "@/lib/types";
+import { BSGauge } from "@/components/bs-meter/BSGauge";
 
 export default function AboutPage() {
   return (
     <div className="mx-auto max-w-4xl px-4 py-12">
       <h1 className="mb-2 text-3xl font-bold text-white">Methodology</h1>
-      <p className="mb-10 text-zinc-400">
-        How BS Meter scores games across 9 dimensions of quality and time-respect.
+      <p className="mb-8 text-zinc-400">
+        How BS Meter evaluates games and determines whether they respect your time.
       </p>
 
-      {/* The Scoring System */}
-      <Section title="The Scoring System">
-        <p className="mb-4 text-sm text-zinc-300">
-          Every game gets two scores. Gemini 2.5 Flash scores 9 dimensions (each 1-10),
-          then we compute both scores from those using genre-adjusted weights.
+      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 mb-12">
+        <div className="shrink-0">
+          <BSGauge score={4.0} showLabel />
+        </div>
+        <div className="space-y-4 pt-2 sm:pt-8">
+          {[
+            { label: "Respectful",   color: "#22C55E", desc: "Tight pacing with no filler. Every hour earns its place." },
+            { label: "Tolerable",    color: "#EAB308", desc: "Some repetition or padding, but nothing that derails the experience." },
+            { label: "Tedious",      color: "#F97316", desc: "Routine filler regularly gets in the way of the good stuff." },
+            { label: "Exploitative", color: "#EF4444", desc: "Deliberately wastes your time through grind, gating, or monetization." },
+          ].map((tier) => (
+            <div key={tier.label} className="flex items-start gap-3 text-xs">
+              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tier.color }} />
+              <div>
+                <span className="font-bold" style={{ color: tier.color }}>{tier.label}</span>
+                <p className="text-zinc-500 mt-0.5">{tier.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* The Rating System */}
+      <Section title="The Rating System">
+        <p className="mb-6 text-sm text-zinc-300">
+          Every game is evaluated by pulling data from multiple sources — critic reviews, player sentiment,
+          completion time data, and video reviewer transcripts — then scored across 9 dimensions.
+          Genre-adjusted weights determine the final BS score.
         </p>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-4">
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h4 className="mb-1 font-bold text-white">Enjoyment Score (0-100)</h4>
+            <h4 className="mb-1 font-bold text-white">What we pull in</h4>
             <p className="text-xs text-zinc-400">
-              Weighted sum across all 9 dimensions, normalized and curved so a
-              &ldquo;genuinely good game&rdquo; lands around 78. Determines the verdict (Must Play → Skip).
+              Critic scores from OpenCritic, completion times from HowLongToBeat,
+              video transcripts from trusted YouTube reviewers, community sentiment from Reddit
+              via Perplexity, and game metadata from IGDB.
             </p>
           </div>
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h4 className="mb-1 font-bold text-white">BS Score (0-10)</h4>
+            <h4 className="mb-1 font-bold text-white">How we analyze it</h4>
             <p className="text-xs text-zinc-400">
-              Measures friction only — pacing, combat repetition, UI, and polish.
-              Lower is better. A 1.5 means the game respects your time; an 8+ means
-              chronic padding.
+              Each game is scored across 9 dimensions using all the data above.
+              Weights shift by genre — a narrative RPG is judged primarily on story and pacing,
+              while a Soulslike lives or dies on boss design and combat.
+            </p>
+          </div>
+          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+            <h4 className="mb-1 font-bold text-white">What you see</h4>
+            <p className="text-xs text-zinc-400">
+              A BS score showing how much the game respects your time — displayed as a
+              colored label on every tile and an interactive gauge on each game&apos;s detail page.
             </p>
           </div>
         </div>
@@ -59,67 +88,11 @@ export default function AboutPage() {
         </div>
       </Section>
 
-      {/* Verdicts */}
-      <Section title="Verdict Scale">
-        <div className="mb-6 space-y-3">
-          {(Object.keys(VERDICTS) as VerdictKey[]).map((key) => {
-            const v = VERDICTS[key];
-            return (
-              <div key={key} className="flex items-center gap-3">
-                <span
-                  className="inline-block w-28 rounded-full py-1 text-center text-xs font-bold text-white"
-                  style={{ backgroundColor: v.color }}
-                >
-                  {v.range}
-                </span>
-                <span className="font-semibold text-white">{v.label}</span>
-              </div>
-            );
-          })}
-        </div>
-        <p className="text-xs text-zinc-500">
-          Note: Pure Gameplay and PvPvE Extraction games are capped at 87 (Buy tier) — a game with no authored story cannot reach Must Play regardless of mechanical quality.
-        </p>
-        <h4 className="mb-3 mt-6 text-sm font-semibold text-zinc-300">BS Score Legend</h4>
-        <div className="space-y-2">
-          {BS_SCORE_LABELS.map((tier) => (
-            <div key={tier.label} className="flex items-center gap-3 text-xs">
-              <span className="w-12 font-bold" style={{ color: tier.color }}>
-                0–{tier.max}
-              </span>
-              <span className="text-zinc-400">{tier.label}</span>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Genre Rules */}
-      <Section title="Genre-Sensitive Weights">
-        <p className="mb-4 text-sm text-zinc-300">
-          Weights vary by genre — a Soulslike is judged primarily on boss design and combat,
-          while a Narrative RPG lives or dies on its story.
-        </p>
-        <div className="space-y-4">
-          {Object.values(GENRE_RULES).map((rule) => (
-            <div key={rule.key} className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-              <div className="flex items-center gap-2">
-                <span className="font-semibold text-white">{rule.displayName}</span>
-                {rule.narrativeCap && (
-                  <span className="rounded-full bg-zinc-700 px-2 py-0.5 text-xs text-zinc-300">
-                    Narrative cap
-                  </span>
-                )}
-              </div>
-              <p className="mt-1 text-xs text-zinc-500">{rule.aiGuidance.slice(0, 120)}...</p>
-            </div>
-          ))}
-        </div>
-      </Section>
 
       {/* Signal Taxonomy */}
       <Section title="BS Signal Taxonomy">
         <p className="mb-4 text-sm text-zinc-300">
-          The AI looks for these specific signals in reviewer transcripts and game data.
+          We look for these specific signals in reviewer transcripts and game data.
         </p>
         <div className="grid gap-8 md:grid-cols-2">
           <div>
@@ -197,8 +170,8 @@ export default function AboutPage() {
             sentiment, bug reports, and community complaints
           </li>
           <li>
-            <strong className="text-white">Gemini 2.5 Flash</strong> — AI
-            analysis across all 9 dimensions
+            <strong className="text-white">Automated scoring</strong> — Analysis
+            across all 9 dimensions
           </li>
         </ul>
       </Section>

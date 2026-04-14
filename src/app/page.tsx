@@ -3,9 +3,13 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getBSScoreLabel } from "@/lib/scoring/brackets";
 import { GameCarousel } from "@/components/game/GameCarousel";
+import { BS_TIERS } from "@/lib/scoring/brackets";
 import type { VerdictKey } from "@/lib/types";
+
+function getSection(score: number) {
+  return BS_TIERS.find((s) => score <= s.max) ?? BS_TIERS[3];
+}
 
 type GameRow = {
   slug: string;
@@ -41,13 +45,20 @@ export default async function HomePage() {
     // Supabase not configured yet — show empty state
   }
 
-  const topRated = [...formattedGames]
-    .filter((g) => g.scores)
-    .sort((a, b) => (a.scores?.bs_score || 10) - (b.scores?.bs_score || 10));
+  const gamesWithScores = formattedGames.filter((g) => g.scores !== null);
 
-  const mostBloated = [...formattedGames]
-    .filter((g) => g.scores)
-    .sort((a, b) => (b.scores?.bs_score || 0) - (a.scores?.bs_score || 0));
+  const tierGroups = BS_TIERS.map((tier, i) => {
+    const min = i === 0 ? -Infinity : BS_TIERS[i - 1].max;
+    return {
+      tier,
+      games: gamesWithScores
+        .filter((g) => {
+          const score = g.scores!.bs_score;
+          return score > min && score <= tier.max;
+        })
+        .sort((a, b) => a.scores!.bs_score - b.scores!.bs_score),
+    };
+  });
 
   return (
     <div className="min-h-screen">
@@ -64,58 +75,42 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── MUST PLAY ── */}
-      {topRated.length > 0 && (
-        <section className="py-10 border-b border-outline-variant/10">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="flex items-baseline justify-between px-8 mb-6">
-              <div>
-                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
-                  Must Play
-                </h2>
-                <div className="w-8 h-0.5 bg-primary mt-1.5 rounded-full" />
+      {/* ── TIER SECTIONS ── */}
+      {tierGroups.map(({ tier, games }) =>
+        games.length > 0 && (
+          <section key={tier.label} className="py-10 border-b border-outline-variant/10">
+            <div className="mx-auto max-w-[1440px]">
+              <div className="flex items-baseline justify-between px-8 mb-6">
+                <div>
+                  <h2
+                    className="font-headline font-bold text-2xl tracking-tighter"
+                    style={{ color: tier.color }}
+                  >
+                    {tier.label}
+                  </h2>
+                  <div
+                    className="w-8 h-0.5 mt-1.5 rounded-full"
+                    style={{ backgroundColor: tier.color }}
+                  />
+                  <p className="mt-2 text-xs text-on-surface-variant font-label">
+                    {tier.desc}
+                  </p>
+                </div>
+                <Link
+                  href="/games"
+                  className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
+                >
+                  See All →
+                </Link>
               </div>
-              <Link
-                href="/games"
-                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
-              >
-                See All →
-              </Link>
+              <GameCarousel>
+                {games.map((game, i) => (
+                  <GameRowCard key={game.slug} game={game} eager={i === 0} />
+                ))}
+              </GameCarousel>
             </div>
-            <GameCarousel>
-              {topRated.map((game, i) => (
-                <GameRowCard key={game.slug} game={game} eager={i === 0} />
-              ))}
-            </GameCarousel>
-          </div>
-        </section>
-      )}
-
-      {/* ── HIGHEST BS SCORE ── */}
-      {mostBloated.length > 0 && (
-        <section className="py-10 border-b border-outline-variant/10">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="flex items-baseline justify-between px-8 mb-6">
-              <div>
-                <h2 className="font-headline font-bold text-2xl tracking-tighter text-on-surface">
-                  Highest BS Score
-                </h2>
-                <div className="w-8 h-0.5 bg-error mt-1.5 rounded-full" />
-              </div>
-              <Link
-                href="/games"
-                className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
-              >
-                See All →
-              </Link>
-            </div>
-            <GameCarousel>
-              {mostBloated.map((game, i) => (
-                <GameRowCard key={game.slug} game={game} eager={i === 0} />
-              ))}
-            </GameCarousel>
-          </div>
-        </section>
+          </section>
+        )
       )}
 
       {/* ── EMPTY STATE ── */}
@@ -134,7 +129,8 @@ export default async function HomePage() {
 }
 
 function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
-  const bsLabel = game.scores ? getBSScoreLabel(game.scores.bs_score) : null;
+  const section = game.scores ? getSection(game.scores.bs_score) : null;
+  const color = section?.color ?? null;
 
   return (
     <Link
@@ -142,7 +138,15 @@ function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
       className="group flex-shrink-0 w-36 md:w-40"
     >
       {/* Cover */}
-      <div className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3">
+      <div
+        className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3"
+        style={color ? {
+          border: `1px solid ${color}50`,
+          boxShadow: `0 0 12px ${color}30, 0 0 28px ${color}15`,
+        } : {
+          border: "1px solid rgba(255,255,255,0.08)",
+        }}
+      >
         {game.cover_url ? (
           <Image
             src={game.cover_url}
@@ -157,27 +161,20 @@ function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
             No Cover
           </div>
         )}
+
       </div>
 
       {/* Info */}
-      <p className="text-sm font-headline font-bold text-on-surface truncate mb-1">
+      <p className="text-sm font-headline font-bold text-on-surface truncate mt-2">
         {game.title}
       </p>
-      {bsLabel && game.scores && (
-        <div className="flex items-center gap-2">
-          <span
-            className="text-xs font-headline font-black tabular-nums px-2 py-0.5 rounded-md"
-            style={{
-              backgroundColor: `${bsLabel.color}20`,
-              color: bsLabel.color,
-            }}
-          >
-            {game.scores.bs_score.toFixed(1)}
-          </span>
-          <span className="text-xs font-label text-on-surface-variant truncate">
-            {bsLabel.label}
-          </span>
-        </div>
+      {section && (
+        <p
+          className="mt-0.5 text-[8px] font-headline font-black uppercase tracking-[0.1em]"
+          style={{ color: section.color }}
+        >
+          {section.label}
+        </p>
       )}
     </Link>
   );
