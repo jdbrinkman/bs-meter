@@ -36,8 +36,8 @@ export default function AboutPage() {
       <Section title="The Rating System">
         <p className="mb-6 text-sm text-zinc-300">
           Every game is evaluated by pulling data from multiple sources — critic reviews, player sentiment,
-          completion time data, and video reviewer transcripts — then analyzed by AI across 9 dimensions.
-          Genre-adjusted weights determine the final verdict and BS score.
+          completion time data, and video reviewer transcripts — then scored across 9 dimensions.
+          Genre-adjusted weights determine the final BS score.
         </p>
         <div className="space-y-4">
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
@@ -51,7 +51,7 @@ export default function AboutPage() {
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
             <h4 className="mb-1 font-bold text-white">How we analyze it</h4>
             <p className="text-xs text-zinc-400">
-              Gemini 2.5 Flash scores each game across 9 dimensions using all the data above.
+              Each game is scored across 9 dimensions using all the data above.
               Weights shift by genre — a narrative RPG is judged primarily on story and pacing,
               while a Soulslike lives or dies on boss design and combat.
             </p>
@@ -59,9 +59,8 @@ export default function AboutPage() {
           <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
             <h4 className="mb-1 font-bold text-white">What you see</h4>
             <p className="text-xs text-zinc-400">
-              A verdict (Must Play → Skip) reflecting overall game quality, and a BS score
-              showing specifically how much the game respects your time. Both appear on every
-              game tile and detail page.
+              A BS score showing how much the game respects your time — displayed as a
+              colored label on every tile and an interactive gauge on each game&apos;s detail page.
             </p>
           </div>
         </div>
@@ -93,7 +92,7 @@ export default function AboutPage() {
       {/* Signal Taxonomy */}
       <Section title="BS Signal Taxonomy">
         <p className="mb-4 text-sm text-zinc-300">
-          The AI looks for these specific signals in reviewer transcripts and game data.
+          We look for these specific signals in reviewer transcripts and game data.
         </p>
         <div className="grid gap-8 md:grid-cols-2">
           <div>
@@ -171,8 +170,8 @@ export default function AboutPage() {
             sentiment, bug reports, and community complaints
           </li>
           <li>
-            <strong className="text-white">Gemini 2.5 Flash</strong> — AI
-            analysis across all 9 dimensions
+            <strong className="text-white">Automated scoring</strong> — Analysis
+            across all 9 dimensions
           </li>
         </ul>
       </Section>
