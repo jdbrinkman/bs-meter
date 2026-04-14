@@ -1,13 +1,7 @@
-// 4 sections matching the BSGauge segments exactly
-const GAUGE_SECTIONS = [
-  { max: 2.5,  label: "No wasted time",   color: "#22C55E" },
-  { max: 5,    label: "Minor friction",   color: "#EAB308" },
-  { max: 7.5,  label: "Noticeable padding", color: "#F97316" },
-  { max: 10,   label: "Significant bloat",  color: "#EF4444" },
-];
+import { BS_TIERS } from "@/lib/scoring/brackets";
 
 function getSection(bsScore: number) {
-  return GAUGE_SECTIONS.find((s) => bsScore <= s.max) ?? GAUGE_SECTIONS[3];
+  return BS_TIERS.find((s) => bsScore <= s.max) ?? BS_TIERS[3];
 }
 
 type BSMeterBarsProps = {

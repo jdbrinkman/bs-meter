@@ -1,17 +1,10 @@
 import Link from "next/link";
 import Image from "next/image";
+import { BS_TIERS } from "@/lib/scoring/brackets";
 import type { VerdictKey } from "@/lib/types";
 
-// 4-section color system matching the gauge
-const SCORE_SECTIONS = [
-  { max: 2.5, color: "#22C55E", label: "No wasted time" },
-  { max: 5,   color: "#EAB308", label: "Minor friction" },
-  { max: 7.5, color: "#F97316", label: "Noticeable padding" },
-  { max: 10,  color: "#EF4444", label: "Significant bloat" },
-];
-
 function getSection(score: number) {
-  return SCORE_SECTIONS.find((s) => score <= s.max) ?? SCORE_SECTIONS[3];
+  return BS_TIERS.find((s) => score <= s.max) ?? BS_TIERS[3];
 }
 
 type GameCardProps = {

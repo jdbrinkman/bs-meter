@@ -60,23 +60,23 @@ function buildSegment(startDeg: number, endDeg: number): string {
 const SEGMENTS = [
   {
     startDeg: 180, endDeg: 225, color: "#22C55E",
-    label: "No wasted time",
-    desc: "The game respects your time. Nearly every moment has purpose.",
+    label: "Respectful",
+    desc: "Tight pacing with no filler. Every hour earns its place.",
   },
   {
     startDeg: 225, endDeg: 270, color: "#EAB308",
-    label: "Minor friction",
-    desc: "Some padding exists but doesn't significantly hurt the experience.",
+    label: "Tolerable",
+    desc: "Some repetition or padding, but nothing that derails the experience.",
   },
   {
     startDeg: 270, endDeg: 315, color: "#F97316",
-    label: "Noticeable padding",
-    desc: "Meaningful bloat detected. Filler content is a recurring issue.",
+    label: "Tedious",
+    desc: "Routine filler regularly gets in the way of the good stuff.",
   },
   {
     startDeg: 315, endDeg: 360, color: "#EF4444",
-    label: "Significant bloat",
-    desc: "Serious time waste. Expect heavy grind, filler, or manipulation.",
+    label: "Exploitative",
+    desc: "Deliberately wastes your time through grind, gating, or monetization.",
   },
 ];
 

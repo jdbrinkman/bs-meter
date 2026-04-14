@@ -16,10 +16,10 @@ export default function AboutPage() {
         </div>
         <div className="space-y-4 pt-2 sm:pt-8">
           {[
-            { label: "No wasted time",     color: "#22C55E", desc: "Nearly every moment has purpose. Tight pacing, no filler." },
-            { label: "Minor friction",     color: "#EAB308", desc: "Some padding or repetition, but it doesn't derail the experience." },
-            { label: "Noticeable padding", color: "#F97316", desc: "Filler inflates the runtime in ways that feel hollow." },
-            { label: "Significant bloat",  color: "#EF4444", desc: "Chronic time waste — excessive grinding, repetition, or meaningless content." },
+            { label: "Respectful",   color: "#22C55E", desc: "Tight pacing with no filler. Every hour earns its place." },
+            { label: "Tolerable",    color: "#EAB308", desc: "Some repetition or padding, but nothing that derails the experience." },
+            { label: "Tedious",      color: "#F97316", desc: "Routine filler regularly gets in the way of the good stuff." },
+            { label: "Exploitative", color: "#EF4444", desc: "Deliberately wastes your time through grind, gating, or monetization." },
           ].map((tier) => (
             <div key={tier.label} className="flex items-start gap-3 text-xs">
               <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tier.color }} />

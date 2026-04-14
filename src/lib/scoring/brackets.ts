@@ -73,18 +73,20 @@ export function getVerdictInfo(key: VerdictKey): VerdictInfo {
   return VERDICTS[key];
 }
 
-// BS Score legend labels
-export const BS_SCORE_LABELS: { max: number; label: string; color: string }[] = [
-  { max: 2,  label: "No wasted time",                color: "#22C55E" },
-  { max: 4,  label: "Minor friction",                color: "#84CC16" },
-  { max: 6,  label: "Noticeable padding",            color: "#EAB308" },
-  { max: 8,  label: "Significant bloat",             color: "#F97316" },
-  { max: 10, label: "Chronic BS",                    color: "#EF4444" },
+// BS Score tiers — single source of truth for labels, colors, and boundaries
+export const BS_TIERS: { max: number; label: string; color: string; desc: string }[] = [
+  { max: 2.5,  label: "Respectful",   color: "#22C55E", desc: "Tight pacing with no filler. Every hour earns its place." },
+  { max: 5,    label: "Tolerable",    color: "#EAB308", desc: "Some repetition or padding, but nothing that derails the experience." },
+  { max: 7.5,  label: "Tedious",      color: "#F97316", desc: "Routine filler regularly gets in the way of the good stuff." },
+  { max: 10,   label: "Exploitative", color: "#EF4444", desc: "Deliberately wastes your time through grind, gating, or monetization." },
 ];
 
+/** @deprecated Use BS_TIERS instead */
+export const BS_SCORE_LABELS = BS_TIERS;
+
 export function getBSScoreLabel(bsScore: number): { label: string; color: string } {
-  for (const tier of BS_SCORE_LABELS) {
+  for (const tier of BS_TIERS) {
     if (bsScore <= tier.max) return { label: tier.label, color: tier.color };
   }
-  return { label: "Chronic BS", color: "#EF4444" };
+  return { label: "Exploitative", color: "#EF4444" };
 }
