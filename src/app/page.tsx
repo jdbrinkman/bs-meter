@@ -1,27 +1,46 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
-import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { GameCarousel } from "@/components/game/GameCarousel";
+import { GameGrid } from "@/components/game/GameGrid";
 import { BS_TIERS } from "@/lib/scoring/brackets";
 import type { VerdictKey } from "@/lib/types";
 
-function getSection(score: number) {
-  return BS_TIERS.find((s) => score <= s.max) ?? BS_TIERS[3];
-}
-
-type GameRow = {
-  slug: string;
-  title: string;
-  cover_url: string | null;
-  developer: string | null;
-  genres: string[];
-  scores: { bs_score: number; verdict: VerdictKey } | null;
+const GENRE_LABELS: Record<string, string> = {
+  "narrative-rpg": "Narrative RPG",
+  "soulslike": "Soulslike",
+  "soulslike-blended": "Soulslike (Blended)",
+  "action-adventure": "Action Adventure",
+  "roguelike": "Roguelike",
+  "roguelike-atmospheric": "Roguelike (Atm.)",
+  "platformer-metroidvania": "Platformer",
+  "puzzle-narrative": "Puzzle",
+  "pure-gameplay": "Pure Gameplay",
+  "narrative-open-world": "Open World",
+  "action-horror": "Horror",
+  "crpg": "CRPG",
+  "pvpve-extraction": "Extraction",
+  "default": "Other",
 };
 
-export default async function HomePage() {
-  let formattedGames: GameRow[] = [];
+type SearchParams = Promise<{ [key: string]: string | string[] | undefined }>;
+
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
+  const params = await searchParams;
+  const activeTier = params.tier as string | undefined;
+  const activeGenre = params.genre as string | undefined;
+
+  let allGames: {
+    slug: string;
+    title: string;
+    cover_url: string | null;
+    developer: string | null;
+    genres: string[];
+    scores: { bs_score: number; verdict: VerdictKey; genre_rule_applied: string | null } | null;
+  }[] = [];
 
   try {
     const supabase = createAdminClient();
@@ -30,39 +49,59 @@ export default async function HomePage() {
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (bs_score, verdict)
+        scores (bs_score, verdict, genre_rule_applied)
       `
       )
       .eq("analysis_status", "complete")
-      .order("analyzed_at", { ascending: false })
-      .limit(20);
+      .order("analyzed_at", { ascending: false });
 
-    formattedGames = (games || []).map((g) => ({
+    allGames = (games || []).map((g) => ({
       ...g,
       scores: Array.isArray(g.scores) ? g.scores[0] || null : g.scores,
     }));
   } catch {
-    // Supabase not configured yet — show empty state
+    // Supabase not configured yet
   }
 
-  const gamesWithScores = formattedGames.filter((g) => g.scores !== null);
+  // Collect unique genres present in the full dataset (for filter chips)
+  const availableGenres = Array.from(
+    new Set(
+      allGames
+        .map((g) => g.scores?.genre_rule_applied)
+        .filter((g): g is string => !!g)
+    )
+  ).sort((a, b) => (GENRE_LABELS[a] || a).localeCompare(GENRE_LABELS[b] || b));
 
-  const tierGroups = BS_TIERS.map((tier, i) => {
-    const min = i === 0 ? -Infinity : BS_TIERS[i - 1].max;
-    return {
-      tier,
-      games: gamesWithScores
-        .filter((g) => {
-          const score = g.scores!.bs_score;
-          return score > min && score <= tier.max;
-        })
-        .sort((a, b) => a.scores!.bs_score - b.scores!.bs_score),
-    };
-  });
+  // Apply filters
+  let filteredGames = allGames.filter((g) => g.scores !== null);
+
+  if (activeTier) {
+    const tier = BS_TIERS.find(
+      (t) => t.label.toLowerCase() === activeTier.toLowerCase()
+    );
+    if (tier) {
+      const tierIndex = BS_TIERS.indexOf(tier);
+      const min = tierIndex === 0 ? -Infinity : BS_TIERS[tierIndex - 1].max;
+      filteredGames = filteredGames.filter((g) => {
+        const score = g.scores!.bs_score;
+        return score > min && score <= tier.max;
+      });
+    }
+  }
+
+  if (activeGenre) {
+    filteredGames = filteredGames.filter(
+      (g) => g.scores?.genre_rule_applied === activeGenre
+    );
+  }
+
+  // Sort by bs_score ascending (cleanest first)
+  filteredGames.sort(
+    (a, b) => (a.scores?.bs_score || 10) - (b.scores?.bs_score || 10)
+  );
 
   return (
-    <div className="min-h-screen">
-
+    <div>
       {/* ── TAGLINE ── */}
       <section className="px-8 pt-8 pb-6 border-b border-outline-variant/10">
         <div className="mx-auto max-w-[1440px]">
@@ -75,107 +114,98 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* ── TIER SECTIONS ── */}
-      {tierGroups.map(({ tier, games }) =>
-        games.length > 0 && (
-          <section key={tier.label} className="py-10 border-b border-outline-variant/10">
-            <div className="mx-auto max-w-[1440px]">
-              <div className="flex items-baseline justify-between px-8 mb-6">
-                <div>
-                  <h2
-                    className="font-headline font-bold text-2xl tracking-tighter"
-                    style={{ color: tier.color }}
-                  >
-                    {tier.label}
-                  </h2>
-                  <div
-                    className="w-8 h-0.5 mt-1.5 rounded-full"
-                    style={{ backgroundColor: tier.color }}
-                  />
-                  <p className="mt-2 text-xs text-on-surface-variant font-label">
-                    {tier.desc}
-                  </p>
-                </div>
-                <Link
-                  href="/games"
-                  className="text-xs font-label font-semibold uppercase tracking-widest text-outline hover:text-primary transition-colors"
-                >
-                  See All →
-                </Link>
-              </div>
-              <GameCarousel>
-                {games.map((game, i) => (
-                  <GameRowCard key={game.slug} game={game} eager={i === 0} />
-                ))}
-              </GameCarousel>
-            </div>
-          </section>
-        )
+      <div className="mx-auto max-w-[1440px] px-8 py-12">
+
+      {/* BS Rating Filters */}
+      <div className="mb-4">
+        <p className="mb-2 text-[10px] font-label font-semibold uppercase tracking-widest text-outline">
+          BS Rating
+        </p>
+        <div className="flex flex-wrap gap-2">
+          <FilterChip
+            href={buildUrl(undefined, activeGenre)}
+            label="All"
+            active={!activeTier}
+          />
+          {BS_TIERS.map((tier) => (
+            <FilterChip
+              key={tier.label}
+              href={buildUrl(tier.label.toLowerCase(), activeGenre)}
+              label={tier.label}
+              color={tier.color}
+              active={activeTier === tier.label.toLowerCase()}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Genre Filters */}
+      {availableGenres.length > 0 && (
+        <div className="mb-10">
+          <p className="mb-2 text-[10px] font-label font-semibold uppercase tracking-widest text-outline">
+            Genre
+          </p>
+          <div className="flex flex-wrap gap-2">
+            <FilterChip
+              href={buildUrl(activeTier, undefined)}
+              label="All"
+              active={!activeGenre}
+            />
+            {availableGenres.map((genre) => (
+              <FilterChip
+                key={genre}
+                href={buildUrl(activeTier, genre)}
+                label={GENRE_LABELS[genre] || genre}
+                active={activeGenre === genre}
+              />
+            ))}
+          </div>
+        </div>
       )}
 
-      {/* ── EMPTY STATE ── */}
-      {formattedGames.length === 0 && (
-        <section className="mx-auto max-w-[1440px] px-8 py-32 text-center">
-          <p className="text-xl text-on-surface-variant font-body mb-2">
-            No games analyzed yet.
-          </p>
-          <p className="text-sm text-outline font-label">
-            POST /api/seed with your admin API key to begin.
-          </p>
-        </section>
-      )}
+      <GameGrid games={filteredGames} />
+      </div>
     </div>
   );
 }
 
-function GameRowCard({ game, eager }: { game: GameRow; eager?: boolean }) {
-  const section = game.scores ? getSection(game.scores.bs_score) : null;
-  const color = section?.color ?? null;
+function buildUrl(tier: string | undefined, genre: string | undefined): string {
+  const params = new URLSearchParams();
+  if (tier) params.set("tier", tier);
+  if (genre) params.set("genre", genre);
+  const qs = params.toString();
+  return qs ? `/?${qs}` : "/";
+}
 
+function FilterChip({
+  href,
+  label,
+  color,
+  active,
+}: {
+  href: string;
+  label: string;
+  color?: string;
+  active: boolean;
+}) {
   return (
-    <Link
-      href={`/games/${game.slug}`}
-      className="group flex-shrink-0 w-36 md:w-40"
+    <a
+      href={href}
+      className="rounded-full border px-4 py-1.5 text-xs font-label font-medium transition-all"
+      style={
+        active
+          ? {
+              backgroundColor: color || "#3fff8b",
+              borderColor: color || "#3fff8b",
+              color: color ? "#111" : "#005d2c",
+            }
+          : {
+              borderColor: "#494847",
+              color: "#adaaaa",
+            }
+      }
     >
-      {/* Cover */}
-      <div
-        className="relative aspect-[3/4] w-full overflow-hidden rounded-xl bg-surface-container-high mb-3"
-        style={color ? {
-          border: `1px solid ${color}50`,
-          boxShadow: `0 0 12px ${color}30, 0 0 28px ${color}15`,
-        } : {
-          border: "1px solid rgba(255,255,255,0.08)",
-        }}
-      >
-        {game.cover_url ? (
-          <Image
-            src={game.cover_url}
-            alt={game.title}
-            fill
-            loading={eager ? "eager" : undefined}
-            className="object-cover transition-transform group-hover:scale-105"
-            sizes="160px"
-          />
-        ) : (
-          <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
-            No Cover
-          </div>
-        )}
-
-      </div>
-
-      {/* Info */}
-      <p className="text-sm font-headline font-bold text-on-surface truncate mt-2">
-        {game.title}
-      </p>
-      {section && (
-        <p
-          className="mt-0.5 text-[8px] font-headline font-black uppercase tracking-[0.1em]"
-          style={{ color: section.color }}
-        >
-          {section.label}
-        </p>
-      )}
-    </Link>
+      {label}
+    </a>
   );
 }

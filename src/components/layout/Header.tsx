@@ -6,8 +6,7 @@ import { usePathname } from "next/navigation";
 import { SearchOverlay } from "@/components/search/SearchOverlay";
 
 const NAV_LINKS = [
-  { href: "/", label: "Home" },
-  { href: "/games", label: "Browse" },
+  { href: "/", label: "Browse" },
   { href: "/about", label: "Methodology" },
 ];
 
