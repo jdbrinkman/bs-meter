@@ -288,4 +288,11 @@ export const SEED_GAMES: SeedGame[] = [
     steamAppId: 2767030,
     igdbSlug: "marvel-rivals",
   },
+  {
+    title: "Pragmata",
+    slug: "pragmata",
+    priceUsd: 69.99,
+    genres: ["Action", "Adventure", "Sci-Fi"],
+    genreKey: "action-adventure",
+  },
 ];
