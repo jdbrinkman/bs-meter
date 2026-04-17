@@ -320,16 +320,6 @@ export default async function GameDetailPage({
           </div>
         )}
 
-        {/* Footer meta */}
-        {score && (
-          <div className="mt-10 text-center text-xs text-outline font-label">
-            Analyzed{" "}
-            {game.analyzed_at
-              ? new Date(game.analyzed_at).toLocaleDateString()
-              : "recently"}{" "}
-            · {score.model_version}
-          </div>
-        )}
       </div>
     </div>
   );
