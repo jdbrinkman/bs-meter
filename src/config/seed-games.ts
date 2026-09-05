@@ -295,4 +295,12 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Action", "Adventure", "Sci-Fi"],
     genreKey: "action-adventure",
   },
+  {
+    // PS5 exclusive — no Steam page
+    title: "Saros",
+    slug: "saros",
+    priceUsd: 69.99,
+    genres: ["Roguelike", "Action", "Sci-Fi"],
+    genreKey: "roguelike-atmospheric",
+  },
 ];
