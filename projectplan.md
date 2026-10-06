@@ -195,13 +195,18 @@ bs-meter/
 - [x] Fixed Hades II Steam App ID (1659760 → 1145350)
 - [x] Updated home page headline and subheading
 - [x] Merged `new-ui` → `main`
+- [x] Ingested Mortal Shell II, Onimusha: Way of the Sword, The Blood of Dawnwalker (35 games total)
+- [x] Mapped Mortal Shell titles to the soulslike genre rule (IGDB has no soulslike tag)
+- [x] Durable cover art: `resolveCoverUrl` checks Steam → IGDB → Steam header and keeps the first that loads (new Steam releases use hashed paths)
+- [x] `POST /api/covers` audit/repair route; ingest re-verifies cover at the end
+- [ ] Rethink game page hierarchy: no single glanceable score, and gauge, evidence, dimension breakdown, Steam reviews and OpenCritic compete for attention
 - [ ] Full-text search (Postgres tsvector)
 - [ ] Genre/bracket filter UI
 - [ ] SEO + dynamic OG images
 - [ ] Loading skeletons + error boundaries
 - [ ] Game comparison view
 - [ ] Simple feedback (helpful yes/no)
-- [ ] Expand to 50 games
+- [ ] Expand to 50 games (35 so far)
 
 ### Phase 3 — Scale (week 6+)
 - [ ] Game request form (users suggest, admin approves)
