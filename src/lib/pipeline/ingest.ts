@@ -7,6 +7,7 @@ import {
   formatCoverUrl,
   filterPlatforms,
 } from "@/lib/api/igdb";
+import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic } from "@/lib/api/opencritic";
 import { searchYouTubeChannel, fetchTranscript } from "@/lib/api/youtube";
@@ -40,16 +41,18 @@ export async function ingestGameData(
       : await searchIGDB(title);
 
     if (igdbData) {
-      // Prefer Steam cover art for games with a Steam App ID — more reliable
-      const steamCoverUrl = seedGame?.steamAppId
-        ? `https://cdn.akamai.steamstatic.com/steam/apps/${seedGame.steamAppId}/library_600x900_2x.jpg`
-        : null;
+      // Only keeps a cover URL that actually loads (Steam → IGDB → Steam header)
+      const coverUrl = await resolveCoverUrl({
+        title,
+        steamAppId: seedGame?.steamAppId,
+        igdbCoverUrl: formatCoverUrl(igdbData.cover?.url),
+      });
 
       await supabase
         .from("games")
         .update({
           igdb_id: igdbData.id,
-          cover_url: steamCoverUrl ?? formatCoverUrl(igdbData.cover?.url),
+          cover_url: coverUrl,
           summary: igdbData.summary || null,
           genres: igdbData.genres?.map((g) => g.name) || [],
           platforms: filterPlatforms(
@@ -64,14 +67,16 @@ export async function ingestGameData(
             : null,
         })
         .eq("id", gameId);
-    } else if (seedGame?.steamAppId) {
-      // IGDB returned nothing — still set Steam cover art so the game isn't blank
-      await supabase
-        .from("games")
-        .update({
-          cover_url: `https://cdn.akamai.steamstatic.com/steam/apps/${seedGame.steamAppId}/library_600x900_2x.jpg`,
-        })
-        .eq("id", gameId);
+    } else {
+      // IGDB returned nothing — fall back to Steam art so the game isn't blank
+      const coverUrl = await resolveCoverUrl({
+        title,
+        steamAppId: seedGame?.steamAppId,
+        igdbCoverUrl: null,
+      });
+      if (coverUrl) {
+        await supabase.from("games").update({ cover_url: coverUrl }).eq("id", gameId);
+      }
     }
 
     // 2. HLTB time data (try scraper, then fall back to seed data)
@@ -205,6 +210,16 @@ export async function ingestGameData(
     }
 
     console.log(`Ingestion complete for: ${title}`);
+    // Final check: a game must never finish ingest with a broken or missing cover
+    const { data: finalGame } = await supabase
+      .from("games")
+      .select("cover_url")
+      .eq("id", gameId)
+      .single();
+    if (!(await urlLoads(finalGame?.cover_url))) {
+      console.warn(`[ingest] No working cover art for "${title}" — needs manual cover_url`);
+    }
+
     return { redditSentiment };
   } catch (error) {
     const errorMsg =

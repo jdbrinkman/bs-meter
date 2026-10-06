@@ -302,6 +302,7 @@ export function mapIGDBGenreToKey(genres: string[], developer?: string | null, t
     return "soulslike";
   }
   // FromSoftware games are soulslike
+  if (titleLower.includes("mortal shell")) return "soulslike";
   if (devLower.includes("fromsoftware") || titleLower.includes("elden ring") || titleLower.includes("dark souls") || titleLower.includes("sekiro") || titleLower.includes("bloodborne"))
     return "soulslike";
 

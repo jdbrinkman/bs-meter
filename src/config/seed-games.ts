@@ -303,4 +303,28 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Roguelike", "Action", "Sci-Fi"],
     genreKey: "roguelike-atmospheric",
   },
+  {
+    title: "Mortal Shell II",
+    slug: "mortal-shell-2",
+    priceUsd: 49.99,
+    genres: ["Souls-like", "Action", "RPG"],
+    genreKey: "souls-like",
+    steamAppId: 2584270,
+  },
+  {
+    title: "Onimusha: Way of the Sword",
+    slug: "onimusha-way-of-the-sword",
+    priceUsd: 69.99,
+    genres: ["Action", "Adventure"],
+    genreKey: "action-adventure",
+    steamAppId: 2638890,
+  },
+  {
+    title: "The Blood of Dawnwalker",
+    slug: "the-blood-of-dawnwalker",
+    priceUsd: 69.99,
+    genres: ["Open World", "RPG", "Action"],
+    genreKey: "open-world-rpg",
+    steamAppId: 3751260,
+  },
 ];
