@@ -199,6 +199,12 @@ bs-meter/
 - [x] Mapped Mortal Shell titles to the soulslike genre rule (IGDB has no soulslike tag)
 - [x] Durable cover art: `resolveCoverUrl` checks Steam → IGDB → Steam header and keeps the first that loads (new Steam releases use hashed paths)
 - [x] `POST /api/covers` audit/repair route; ingest re-verifies cover at the end
+- [~] Verdict-first concept mockup on `verdict-redesign` branch (verdict, BS index, 3 chips; rest collapsed) using derived mock data; scoring model decisions still open (what BS measures, juice vs. squeeze, price in verdict)
+- [x] Scoring v2 (juice/squeeze): 12 measures rated 0-5 by the AI against written rubrics (`src/lib/scoring/v2.ts`), deterministic juice/BS index + verdict from ratings; migration 008, `/api/score-v2`, `/api/recompute-v2`
+- [~] Re-score all games with v2: 22 of 35 done; remaining 13 hit the Gemini free-tier daily quota; rerun all after prompt tweak (broken = best-supported platform)
+- [ ] Anchor-game check with Jordan (TLOU2 and Sekiro expected "Worth it"; Onimusha looked suspicious)
+- [ ] Reliability tests for v2 (repeat runs, source-drop sensitivity)
+- [ ] Fix wrong cover art (Witcher 3 shows Dark Souls III box)
 - [ ] Rethink game page hierarchy: no single glanceable score, and gauge, evidence, dimension breakdown, Steam reviews and OpenCritic compete for attention
 - [ ] Full-text search (Postgres tsvector)
 - [ ] Genre/bracket filter UI

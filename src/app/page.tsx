@@ -39,7 +39,7 @@ export default async function HomePage({
     cover_url: string | null;
     developer: string | null;
     genres: string[];
-    scores: { bs_score: number; verdict: VerdictKey; genre_rule_applied: string | null } | null;
+    scores: { bs_score: number; verdict_v2: "worth-it" | "wait" | "not-yet" | "skip" | null; bs_index: number | null; verdict: VerdictKey; genre_rule_applied: string | null } | null;
   }[] = [];
 
   try {
@@ -49,7 +49,7 @@ export default async function HomePage({
       .select(
         `
         slug, title, cover_url, developer, genres,
-        scores (bs_score, verdict, genre_rule_applied)
+        scores (bs_score, verdict, genre_rule_applied, verdict_v2, bs_index)
       `
       )
       .eq("analysis_status", "complete")

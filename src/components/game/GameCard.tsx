@@ -1,11 +1,8 @@
 import Link from "next/link";
 import Image from "next/image";
-import { BS_TIERS } from "@/lib/scoring/brackets";
+import { VERDICTS, bsColor, type VerdictKey as V2Key } from "@/lib/scoring/v2";
+import { VerdictIcon } from "./VerdictIcon";
 import type { VerdictKey } from "@/lib/types";
-
-function getSection(score: number) {
-  return BS_TIERS.find((s) => score <= s.max) ?? BS_TIERS[3];
-}
 
 type GameCardProps = {
   slug: string;
@@ -15,19 +12,20 @@ type GameCardProps = {
   genres: string[];
   bsScore: number | null;
   verdict: VerdictKey | null;
+  verdictV2?: V2Key | null;
+  bsIndex?: number | null;
 };
 
-export function GameCard({ slug, title, coverUrl, bsScore }: GameCardProps) {
-  const section = bsScore !== null ? getSection(bsScore) : null;
-  const color = section?.color ?? null;
+export function GameCard({ slug, title, coverUrl, verdictV2, bsIndex }: GameCardProps) {
+  const v = verdictV2 ? VERDICTS[verdictV2] : null;
+  const color = v?.color ?? null;
 
   return (
     <Link
       href={`/games/${slug}`}
       className="group overflow-hidden rounded-2xl bg-surface-container transition-all hover:bg-surface-container-high"
       style={color ? {
-        border: `1px solid ${color}50`,
-        boxShadow: `0 0 12px ${color}30, 0 0 28px ${color}15`,
+        border: `1px solid ${color}40`,
       } : {
         border: "1px solid rgba(255,255,255,0.08)",
       }}
@@ -53,13 +51,18 @@ export function GameCard({ slug, title, coverUrl, bsScore }: GameCardProps) {
         <h3 className="truncate text-sm font-bold font-headline text-on-surface">
           {title}
         </h3>
-        {section && (
-          <p
-            className="mt-0.5 text-[8px] font-headline font-black uppercase tracking-[0.1em]"
-            style={{ color: section.color }}
-          >
-            {section.label}
-          </p>
+        {v && verdictV2 && (
+          <div className="mt-1 flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 text-[11px] font-headline font-black" style={{ color: v.color }}>
+              <VerdictIcon kind={verdictV2} size={14} color={v.color} />
+              {v.label}
+            </span>
+            {bsIndex != null && (
+              <span className="text-[10px] font-label tabular-nums" style={{ color: bsColor(bsIndex) }}>
+                BS {bsIndex}
+              </span>
+            )}
+          </div>
         )}
       </div>
     </Link>

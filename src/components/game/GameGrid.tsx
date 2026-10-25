@@ -1,5 +1,6 @@
 import { GameCard } from "./GameCard";
 import type { VerdictKey } from "@/lib/types";
+import type { VerdictKey as V2Key } from "@/lib/scoring/v2";
 
 type GameGridItem = {
   slug: string;
@@ -8,6 +9,8 @@ type GameGridItem = {
   developer: string | null;
   genres: string[];
   scores: {
+    verdict_v2?: V2Key | null;
+    bs_index?: number | null;
     bs_score: number;
     verdict: VerdictKey;
   } | null;
@@ -38,6 +41,8 @@ export function GameGrid({ games }: GameGridProps) {
           genres={game.genres}
           bsScore={game.scores?.bs_score ?? null}
           verdict={game.scores?.verdict ?? null}
+          verdictV2={game.scores?.verdict_v2 ?? null}
+          bsIndex={game.scores?.bs_index ?? null}
         />
       ))}
     </div>
