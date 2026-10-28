@@ -12,6 +12,8 @@ export type IGDBGame = {
     publisher: boolean;
   }[];
   first_release_date?: number;
+  game_type?: { type: string };
+  rating_count?: number;
 };
 
 export type HLTBResult = {

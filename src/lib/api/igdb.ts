@@ -29,7 +29,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 const IGDB_FIELDS =
-  "name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date";
+  "name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date,game_type.type,rating_count";
 
 // Mobile/handheld platforms that shouldn't appear for console/PC games
 const MOBILE_PLATFORMS = new Set([
@@ -46,6 +46,25 @@ export function filterPlatforms(platforms: string[]): string[] {
   return platforms.filter((p) => !MOBILE_PLATFORMS.has(p));
 }
 
+// IGDB types that are real, standalone games. Everything else (Bundle, Mod, Update, Expansion,
+// DLC, Season, Pack...) is never the game we want, even when it ranks first in search.
+const GAME_TYPES = new Set(["Main Game", "Remake", "Remaster", "Standalone Expansion", "Expanded Game", "Port", "Fork"]);
+
+function normName(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Picks the right IGDB record from search candidates. Exported so it can be tested offline. */
+export function pickIGDBCandidate(title: string, candidates: IGDBGame[]): IGDBGame | null {
+  const real = candidates.filter((c) => GAME_TYPES.has(c.game_type?.type ?? ""));
+  const exact = real.filter((c) => c.name.toLowerCase() === title.toLowerCase());
+  const normalized = real.filter((c) => normName(c.name) === normName(title));
+  const pool = exact.length ? exact : normalized;
+  if (!pool.length) return null; // no confident match: caller must report it, not guess
+  // IGDB has duplicate entries for some games; the real one has far more ratings.
+  return [...pool].sort((a, b) => (b.rating_count ?? 0) - (a.rating_count ?? 0))[0];
+}
+
 export async function searchIGDB(title: string): Promise<IGDBGame | null> {
   const token = await getAccessToken();
 
@@ -56,13 +75,12 @@ export async function searchIGDB(title: string): Promise<IGDBGame | null> {
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/plain",
     },
-    body: `search "${title}"; fields ${IGDB_FIELDS}; limit 1;`,
+    body: `search "${title.replace(/"/g, "")}"; fields ${IGDB_FIELDS}; limit 15;`,
   });
 
   if (!res.ok) throw new Error(`IGDB search failed: ${res.status}`);
 
-  const results: IGDBGame[] = await res.json();
-  return results[0] || null;
+  return pickIGDBCandidate(title, (await res.json()) as IGDBGame[]);
 }
 
 export async function searchIGDBBySlug(slug: string): Promise<IGDBGame | null> {

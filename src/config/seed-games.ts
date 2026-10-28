@@ -29,6 +29,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Resident Evil 4 Remake",
+    igdbSlug: "resident-evil-4--1",
     slug: "resident-evil-4-remake",
     priceUsd: 59.99,
     genres: ["Horror", "Action"],
@@ -76,6 +77,7 @@ export const SEED_GAMES: SeedGame[] = [
   // High Signal candidates
   {
     title: "The Witcher 3: Wild Hunt",
+    igdbSlug: "the-witcher-3-wild-hunt",
     slug: "the-witcher-3-wild-hunt",
     priceUsd: 39.99,
     genres: ["Open World", "RPG"],
@@ -85,6 +87,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Hollow Knight",
+    igdbSlug: "hollow-knight",
     slug: "hollow-knight",
     priceUsd: 14.99,
     genres: ["Metroidvania", "Indie"],
@@ -263,6 +266,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Hollow Knight: Silksong",
+    igdbSlug: "hollow-knight-silksong",
     slug: "hollow-knight-silksong",
     priceUsd: 19.99,
     genres: ["Metroidvania", "Indie", "Platformer"],
@@ -277,7 +281,7 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Hero Shooter", "Multiplayer"],
     genreKey: "multiplayer-shooter",
     steamAppId: 2357570,
-    igdbSlug: "overwatch-2",
+    igdbSlug: "overwatch--1",
   },
   {
     title: "Marvel Rivals",

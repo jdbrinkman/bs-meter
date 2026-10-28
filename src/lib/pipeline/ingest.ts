@@ -11,6 +11,7 @@ import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic } from "@/lib/api/opencritic";
 import { ingestYouTubeSources } from "./ingest-youtube";
+import { refreshMetadata } from "./ingest-metadata";
 import { searchRedditSentiment } from "@/lib/api/reddit";
 import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
 import { SEED_GAMES } from "@/config/seed-games";
@@ -33,50 +34,8 @@ export async function ingestGameData(
       (g) => g.title.toLowerCase() === title.toLowerCase()
     );
 
-    // 1. IGDB metadata
-    // Use exact slug lookup when available to avoid fuzzy search mismatches
-    const igdbData = seedGame?.igdbSlug
-      ? await searchIGDBBySlug(seedGame.igdbSlug)
-      : await searchIGDB(title);
-
-    if (igdbData) {
-      // Only keeps a cover URL that actually loads (Steam → IGDB → Steam header)
-      const coverUrl = await resolveCoverUrl({
-        title,
-        steamAppId: seedGame?.steamAppId,
-        igdbCoverUrl: formatCoverUrl(igdbData.cover?.url),
-      });
-
-      await supabase
-        .from("games")
-        .update({
-          igdb_id: igdbData.id,
-          cover_url: coverUrl,
-          summary: igdbData.summary || null,
-          genres: igdbData.genres?.map((g) => g.name) || [],
-          platforms: filterPlatforms(
-            igdbData.platforms?.map((p) => p.name) || []
-          ),
-          developer: extractDeveloper(igdbData),
-          publisher: extractPublisher(igdbData),
-          release_date: igdbData.first_release_date
-            ? new Date(igdbData.first_release_date * 1000)
-                .toISOString()
-                .split("T")[0]
-            : null,
-        })
-        .eq("id", gameId);
-    } else {
-      // IGDB returned nothing — fall back to Steam art so the game isn't blank
-      const coverUrl = await resolveCoverUrl({
-        title,
-        steamAppId: seedGame?.steamAppId,
-        igdbCoverUrl: null,
-      });
-      if (coverUrl) {
-        await supabase.from("games").update({ cover_url: coverUrl }).eq("id", gameId);
-      }
-    }
+    // 1. IGDB metadata (exact slug when seeded; otherwise a verified title match)
+    await refreshMetadata(gameId, title, seedGame);
 
     // 2. HLTB time data (try scraper, then fall back to seed data)
     const hltbData = await searchHLTB(title);
