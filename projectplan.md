@@ -223,10 +223,11 @@ bs-meter/
 - [x] Refreshed YouTube sources for all 35 games on the new lookup (30 games have 4+ transcripts, only Mio has 1); Digital Foundry gets its own "tech review" search (29/35 games have a DF video)
 - [x] YouTube lookup rebuild (`youtube-lookup.ts`, `ingest-youtube.ts`, `/api/ingest/youtube`; 25 offline title-match cases in `scripts/test-youtube.mjs`; the 10 games with no transcripts now have 2-9 each; transcripts keep start+end, 3 retries, every step logged to ingest_log): ONE broad "[game] review" search (100 units) filtered to the trusted-channel set, then variant queries / channel-restricted search only if short; strict title match, retries, keep start+end of transcripts (upload lists do NOT work for huge channels like IGN, 185k videos)
 - [x] Expand trusted channels: IGN, GameSpot, Eurogamer, PC Gamer, Easy Allies, GamesRadar, Rerez, Raycevick (approved; 16 channels, IDs verified by audit)
-- [ ] Critic layer (decision: list critics as sources at the bottom of the page, possibly not show at all): store per-review OpenCritic data (outlet, score, snippet, url, date, ~160-220 reviews/game available); fetch full text of top ~5 major-outlet articles (fetch tested OK on Eurogamer/PC Gamer/IGN/TheGamer); show critic consensus + major-outlet scores on page; critic TEXT is evidence, aggregate score is not fed to the rating prompt
+- [x] Critic layer: `critic_reviews` table + `article` source type (migration 010); OpenCritic reviews (40/game) stored; full text of up to 5 readable written reviews per game fed to the v2 prompt (Eurogamer, PC Gamer, GamesRadar+, IGN, Polygon work; GameSpot 403 and Game Informer JS-rendered are skipped); critics listed as sources at the bottom of the page, not shown prominently; OpenCritic aggregate score removed from the prompt; `POST /api/ingest/critics`
 - [ ] Evidence ladder: trusted YouTube -> widened YouTube -> OpenCritic written reviews -> Steam long-playtime reviews -> Reddit; evidence status full / limited / insufficient per game
+- [x] Fixed wrong OpenCritic entries (Resident Evil 4 Remake pointed at the 2005 game, Mass Effect 3 shared Andromeda's entry, Mortal Shell II had none); verified resolver `pickOpenCriticCandidate` (name + release year), seed `opencriticId` overrides, audit checks for shared IDs and review dates
 - [ ] Hard facts: Steam store price + IAP flag, IGDB time-to-beat, Steam achievement %
-- [ ] Remove OpenCritic score from the scoring prompt (display only)
+- [x] Remove OpenCritic score from the scoring prompt (display only)
 - [ ] One scoring version everywhere (home/browse/API/About on v2)
 - [ ] Gemini paid billing, then re-score all 35 once
 

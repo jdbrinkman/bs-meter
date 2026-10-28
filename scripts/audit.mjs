@@ -72,6 +72,24 @@ async function checkDatabase() {
   const missing = games.filter((g) => g.analysis_status === "complete" && !v2.has(g.id)).map((g) => g.title);
   add(missing.length ? "FAIL" : "PASS", "v2-complete", missing.length ? `${missing.length} complete games have no v2 ratings: ${missing.join(", ")}` : "all complete games have v2 ratings");
 
+  // critic layer identity: wrong OpenCritic entries show up as shared IDs or review dates far from release
+  const { data: gamesOC } = await db.from("games").select("id,title,release_date,opencritic_id");
+  const { data: critics } = await db.from("critic_reviews").select("game_id,published_at");
+  const ocIds = new Map();
+  for (const g of gamesOC) if (g.opencritic_id) ocIds.set(g.opencritic_id, [...(ocIds.get(g.opencritic_id) || []), g.title]);
+  const shared = [...ocIds.values()].filter((t) => t.length > 1).map((t) => t.join(" + "));
+  add(shared.length ? "FAIL" : "PASS", "critic-shared-id", shared.length ? `games sharing one OpenCritic entry: ${shared.join("; ")}` : "no two games share an OpenCritic entry");
+  const earliest = new Map();
+  for (const c of critics || []) if (c.published_at && (!earliest.has(c.game_id) || c.published_at < earliest.get(c.game_id))) earliest.set(c.game_id, c.published_at);
+  const offDates = [];
+  for (const g of gamesOC) {
+    const e = earliest.get(g.id);
+    if (e && g.release_date && new Date(e).getFullYear() < new Date(g.release_date).getFullYear() - 2) offDates.push(`${g.title} (release ${g.release_date.slice(0, 4)}, earliest critic ${e.slice(0, 4)})`);
+  }
+  add(offDates.length ? "FAIL" : "PASS", "critic-dates", offDates.length ? `critic reviews predate release by 3+ years (wrong OpenCritic entry?): ${offDates.join("; ")}` : "critic review dates line up with release dates");
+  const noArticles = gamesOC.filter((g) => g.opencritic_id && !(sources || []).some((s) => s.game_id === g.id && s.source_type === "article")).map((g) => g.title);
+  add(noArticles.length ? "WARN" : "PASS", "critic-articles", noArticles.length ? `${noArticles.length} games have no written critic article: ${noArticles.join(", ")}` : "every game with OpenCritic data has written reviews");
+
   // missing core facts
   const noHours = games.filter((g) => !g.main_story_hours).map((g) => g.title);
   add(noHours.length ? "WARN" : "PASS", "time-to-beat", noHours.length ? `${noHours.length} games have no time-to-beat hours` : "all games have hours");

@@ -9,9 +9,10 @@ import {
 } from "@/lib/api/igdb";
 import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
 import { searchHLTB } from "@/lib/api/hltb";
-import { searchOpenCritic } from "@/lib/api/opencritic";
+import { searchOpenCritic, getOpenCriticGame } from "@/lib/api/opencritic";
 import { ingestYouTubeSources } from "./ingest-youtube";
 import { refreshMetadata } from "./ingest-metadata";
+import { ingestCritics } from "./ingest-critics";
 import { searchRedditSentiment } from "@/lib/api/reddit";
 import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
 import { SEED_GAMES } from "@/config/seed-games";
@@ -68,7 +69,14 @@ export async function ingestGameData(
 
     // 3. OpenCritic
     try {
-      const ocData = await searchOpenCritic(title);
+      let ocData = null;
+      if (seedGame && "opencriticId" in seedGame) {
+        // Seed knows the answer (an exact ID, or null when OpenCritic has no entry for this game)
+        ocData = seedGame.opencriticId ? await getOpenCriticGame(seedGame.opencriticId) : null;
+      } else {
+        const { data: row } = await supabase.from("games").select("release_date").eq("id", gameId).single();
+        ocData = await searchOpenCritic(title, row?.release_date ? new Date(row.release_date).getFullYear() : null);
+      }
       if (ocData) {
         await supabase
           .from("games")
@@ -78,6 +86,7 @@ export async function ingestGameData(
             opencritic_tier: ocData.tier,
           })
           .eq("id", gameId);
+        await ingestCritics(gameId, ocData.id);
       }
     } catch (error) {
       console.warn(`OpenCritic fetch failed for ${title}:`, error);

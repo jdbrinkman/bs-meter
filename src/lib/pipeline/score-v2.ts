@@ -12,10 +12,16 @@ export async function scoreGameV2(gameId: string) {
   if (error || !game) throw new Error(`Game not found: ${gameId}`);
 
   const { data: sources } = await supabase.from("review_sources").select("*").eq("game_id", gameId);
+  const { data: critics } = await supabase
+    .from("critic_reviews")
+    .select("outlet, snippet")
+    .eq("game_id", gameId)
+    .order("published_at", { ascending: true })
+    .limit(40);
   const g = game as Game;
   const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
 
-  const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey);
+  const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey, critics || []);
   const ratings = analysis.ratings;
 
   const juice = computeJuiceIndex(ratings, genreKey);

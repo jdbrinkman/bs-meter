@@ -2,17 +2,30 @@ import { getGenreRule } from "@/config/genre-weights";
 import { JUICE, SQUEEZE, type MeasureDef } from "@/lib/scoring/v2";
 import type { Game, ReviewSource } from "@/lib/types";
 
+export type CriticSnippet = { outlet: string; snippet: string | null };
+
 const fmt = (m: MeasureDef) => `- ${m.key} — ${m.label}: ${m.summary}\n  Rubric: ${m.rubric}`;
 
 export function buildPromptV2(
   game: Game,
   reviewSources: ReviewSource[],
   genreKey: string,
-  redditSentiment?: string | null
+  redditSentiment?: string | null,
+  criticSnippets: CriticSnippet[] = []
 ): string {
   const genre = getGenreRule(genreKey);
   const yt = reviewSources.filter((r) => r.source_type === "youtube" && r.transcript);
   const steam = reviewSources.filter((r) => r.source_type === "steam" && r.transcript);
+
+  const articles = reviewSources.filter((r) => r.source_type === "article" && r.transcript);
+  const articleText = articles
+    .map((r) => `=== ${r.channel_name || "Critic"} (written review) ===\n${r.transcript}`)
+    .join("\n\n");
+  const snippetLines = criticSnippets
+    .filter((c) => c.snippet)
+    .slice(0, 25)
+    .map((c) => `- ${c.outlet}: "${c.snippet}"`)
+    .join("\n");
 
   const transcripts = yt
     .map((r) => `=== ${r.channel_name || "Reviewer"}: "${r.video_title || "Review"}" ===\n${r.transcript}`)
@@ -25,12 +38,11 @@ export function buildPromptV2(
 - Genre profile: ${genre.displayName}
 - Price: $${game.price_usd ?? "Unknown"}
 - HowLongToBeat: Main ${game.main_story_hours ?? "?"}h | Main+Extras ${game.main_extras_hours ?? "?"}h | Completionist ${game.completionist_hours ?? "?"}h
-- OpenCritic: ${game.opencritic_score ?? "?"}/100
 - Genre notes: ${genre.aiGuidance}
 
 ## REVIEWER TRANSCRIPTS (${yt.length})
 ${transcripts || "None available. Base ratings on the other data and mark basis as inferred."}
-${steam.length ? `\n## STEAM USER REVIEWS\n${steam.map((r) => r.transcript).join("\n\n")}\n` : ""}${redditSentiment ? `\n## REDDIT SENTIMENT\n${redditSentiment}\n` : ""}
+${articles.length ? `\n## WRITTEN CRITIC REVIEWS (${articles.length})\n${articleText}\n` : ""}${snippetLines ? `\n## OTHER CRITIC EXCERPTS\n${snippetLines}\n` : ""}${steam.length ? `\n## STEAM USER REVIEWS\n${steam.map((r) => r.transcript).join("\n\n")}\n` : ""}${redditSentiment ? `\n## REDDIT SENTIMENT\n${redditSentiment}\n` : ""}
 ## THE 12 MEASURES (rate each 0-5, whole numbers)
 
 ### Juice (5 = excellent)

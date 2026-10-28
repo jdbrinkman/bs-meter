@@ -14,7 +14,7 @@ export default async function GameDetailPage({ params }: { params: PageParams })
 
   const { data: game, error } = await supabase
     .from("games")
-    .select(`*, scores (*), review_sources (id, source_type, channel_name, video_title, url)`)
+    .select(`*, scores (*), review_sources (id, source_type, channel_name, video_title, url), critic_reviews (id, outlet, score, url, published_at)`)
     .eq("slug", slug)
     .single();
 
@@ -22,6 +22,11 @@ export default async function GameDetailPage({ params }: { params: PageParams })
 
   const score = Array.isArray(game.scores) ? game.scores[0] || null : game.scores;
   const reviewSources = game.review_sources || [];
+  const criticReviews = ((game.critic_reviews || []) as { id: string; outlet: string; score: number | null; url: string | null }[]).filter(
+    (c) => c.url
+  );
+  const videos = reviewSources.filter((r: { source_type: string }) => r.source_type === "youtube");
+  const articles = reviewSources.filter((r: { source_type: string }) => r.source_type === "article");
   const ratings = (score?.ratings ?? null) as Ratings | null;
   const verdict = score?.verdict_v2 ? VERDICTS[score.verdict_v2 as keyof typeof VERDICTS] : null;
   const bs: number | null = score?.bs_index ?? null;
@@ -114,25 +119,48 @@ export default async function GameDetailPage({ params }: { params: PageParams })
             </Collapsible>
           )}
 
-          {reviewSources.length > 0 && (
-            <Collapsible title="Sources analyzed">
-              <div className="flex flex-wrap gap-2">
-                {reviewSources.map((rs: { id: string; channel_name: string | null; url: string | null; video_title: string | null }) => (
-                  <a
-                    key={rs.id}
-                    href={rs.url || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-lg bg-surface-container px-3 py-2 font-label text-xs text-on-surface-variant hover:text-on-surface"
-                    title={rs.video_title || undefined}
-                  >
-                    {rs.channel_name || "Review Source"}
-                  </a>
-                ))}
+          {(videos.length > 0 || articles.length > 0 || criticReviews.length > 0) && (
+            <Collapsible title="Sources">
+              <div className="space-y-6">
+                {videos.length > 0 && <SourceGroup label="Video reviews we read" items={videos.map((v: SourceRow) => ({ key: v.id, text: v.channel_name || "Review", url: v.url, title: v.video_title }))} />}
+                {articles.length > 0 && <SourceGroup label="Written reviews we read" items={articles.map((a: SourceRow) => ({ key: a.id, text: a.channel_name || "Review", url: a.url, title: a.video_title }))} />}
+                {criticReviews.length > 0 && (
+                  <SourceGroup
+                    label={`Critic reviews on OpenCritic (${criticReviews.length})`}
+                    items={criticReviews
+                      .slice()
+                      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+                      .map((c) => ({ key: c.id, text: c.score != null ? `${c.outlet} ${Math.round(c.score)}` : c.outlet, url: c.url, title: null }))}
+                  />
+                )}
               </div>
             </Collapsible>
           )}
         </div>
+      </div>
+    </div>
+  );
+}
+
+type SourceRow = { id: string; channel_name: string | null; url: string | null; video_title: string | null };
+
+function SourceGroup({ label, items }: { label: string; items: { key: string; text: string; url: string | null; title: string | null }[] }) {
+  return (
+    <div>
+      <p className="mb-2 font-label text-[11px] uppercase tracking-widest text-on-surface-variant">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((i) => (
+          <a
+            key={i.key}
+            href={i.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-surface-container px-3 py-2 font-label text-xs text-on-surface-variant hover:text-on-surface"
+            title={i.title || undefined}
+          >
+            {i.text}
+          </a>
+        ))}
       </div>
     </div>
   );

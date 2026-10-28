@@ -8,6 +8,8 @@ export type SeedGame = {
   steamAppId?: number;
   // IGDB slug for exact lookup — use when text search returns wrong results
   igdbSlug?: string;
+  // OpenCritic game ID when search cannot tell editions apart. `null` = OpenCritic has no entry for this exact game.
+  opencriticId?: number | null;
   // Manual HLTB data (hours) as fallback when scraping fails
   hltb?: {
     mainStory: number;
@@ -29,6 +31,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Resident Evil 4 Remake",
+    opencriticId: 14200,
     igdbSlug: "resident-evil-4--1",
     slug: "resident-evil-4-remake",
     priceUsd: 59.99,
@@ -172,6 +175,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Mass Effect 3",
+    opencriticId: null,
     slug: "mass-effect-3",
     priceUsd: 59.99,
     genres: ["RPG", "Sci-Fi", "Action"],
@@ -309,6 +313,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Mortal Shell II",
+    opencriticId: 20988,
     slug: "mortal-shell-2",
     priceUsd: 49.99,
     genres: ["Souls-like", "Action", "RPG"],

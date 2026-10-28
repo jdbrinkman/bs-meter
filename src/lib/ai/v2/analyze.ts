@@ -1,15 +1,16 @@
 import { getGeminiClient, GEMINI_MODEL } from "../gemini";
-import { buildPromptV2 } from "./prompt";
+import { buildPromptV2, type CriticSnippet } from "./prompt";
 import { analysisV2JsonSchema, parseAnalysisV2, type AnalysisV2 } from "./schema";
 import type { Game, ReviewSource } from "@/lib/types";
 
 export async function analyzeGameV2(
   game: Game,
   reviewSources: ReviewSource[],
-  genreKey: string
+  genreKey: string,
+  criticSnippets: CriticSnippet[] = []
 ): Promise<AnalysisV2> {
   const client = getGeminiClient();
-  const prompt = buildPromptV2(game, reviewSources, genreKey);
+  const prompt = buildPromptV2(game, reviewSources, genreKey, null, criticSnippets);
 
   for (let attempt = 0; attempt < 3; attempt++) {
     try {
