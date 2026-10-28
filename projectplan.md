@@ -214,6 +214,21 @@ bs-meter/
 - [ ] Simple feedback (helpful yes/no)
 - [ ] Expand to 50 games (35 so far)
 
+### Phase 2b — Data integrity and evidence sourcing (planned)
+- [ ] Fix 5 wrong trusted-channel IDs (FightinCowboy, Mortismal, Sphere Hunter, Iron Pineapple, Worth A Buy); verify by handle
+- [ ] `npm run audit` health check (channel IDs resolve, IGDB vs Steam release-date cross-check, no dupes, evidence age/coverage, one score per game)
+- [ ] Ingest log: per game + per source status (ok/empty/failed + reason)
+- [ ] Safe writes: unique key + upsert on review_sources, dedupe 28 rows, v2 write checks affected rows, store source published_at
+- [ ] Fix IGDB records (Witcher 3 bundle, Hollow Knight, Silksong release dates) and re-fetch covers
+- [ ] YouTube lookup rebuild: ONE broad "[game] review" search (100 units) filtered to the trusted-channel set, then variant queries / channel-restricted search only if short; strict title match, retries, keep start+end of transcripts (upload lists do NOT work for huge channels like IGN, 185k videos)
+- [ ] Expand trusted channels (verified IDs): IGN, GameSpot, Eurogamer, PC Gamer, Easy Allies, GamesRadar, Rerez, Raycevick (pending Jordan's approval)
+- [ ] Critic layer: store per-review OpenCritic data (outlet, score, snippet, url, date, ~160-220 reviews/game available); fetch full text of top ~5 major-outlet articles (fetch tested OK on Eurogamer/PC Gamer/IGN/TheGamer); show critic consensus + major-outlet scores on page; critic TEXT is evidence, aggregate score is not fed to the rating prompt
+- [ ] Evidence ladder: trusted YouTube -> widened YouTube -> OpenCritic written reviews -> Steam long-playtime reviews -> Reddit; evidence status full / limited / insufficient per game
+- [ ] Hard facts: Steam store price + IAP flag, IGDB time-to-beat, Steam achievement %
+- [ ] Remove OpenCritic score from the scoring prompt (display only)
+- [ ] One scoring version everywhere (home/browse/API/About on v2)
+- [ ] Gemini paid billing, then re-score all 35 once
+
 ### Phase 3 — Scale (week 6+)
 - [ ] Game request form (users suggest, admin approves)
 - [ ] Scheduled re-analysis cron
