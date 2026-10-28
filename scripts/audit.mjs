@@ -90,6 +90,15 @@ async function checkDatabase() {
   const noArticles = gamesOC.filter((g) => g.opencritic_id && !(sources || []).some((s) => s.game_id === g.id && s.source_type === "article")).map((g) => g.title);
   add(noArticles.length ? "WARN" : "PASS", "critic-articles", noArticles.length ? `${noArticles.length} games have no written critic article: ${noArticles.join(", ")}` : "every game with OpenCritic data has written reviews");
 
+  // Steam facts and price freshness
+  const { data: steamGames } = await db.from("games").select("title,price_usd,current_price_usd,steam_app_id,steam_facts");
+  const noFacts = steamGames.filter((g) => g.steam_app_id && !g.steam_facts).map((g) => g.title);
+  add(noFacts.length ? "WARN" : "PASS", "steam-facts", noFacts.length ? `${noFacts.length} Steam games have no store facts: ${noFacts.join(", ")}` : "every Steam game has store facts (price, IAP, DLC, achievements)");
+  const noPrice = steamGames.filter((g) => g.current_price_usd == null).map((g) => g.title);
+  add(noPrice.length ? "WARN" : "PASS", "current-price", noPrice.length ? `${noPrice.length} games have no current Steam price (verdict falls back to the hand-typed seed price): ${noPrice.join(", ")}` : "every game has a current price");
+  const stale = steamGames.filter((g) => g.current_price_usd != null && g.price_usd != null && Math.abs(Number(g.current_price_usd) - Number(g.price_usd)) / Math.max(Number(g.price_usd), 1) > 0.2).map((g) => `${g.title} (seed $${g.price_usd}, now $${g.current_price_usd})`);
+  add(stale.length ? "WARN" : "PASS", "seed-price-stale", stale.length ? `${stale.length} hand-typed seed prices are off by more than 20%: ${stale.join("; ")}` : "seed prices are within 20% of Steam");
+
   // missing core facts
   const noHours = games.filter((g) => !g.main_story_hours).map((g) => g.title);
   add(noHours.length ? "WARN" : "PASS", "time-to-beat", noHours.length ? `${noHours.length} games have no time-to-beat hours` : "all games have hours");

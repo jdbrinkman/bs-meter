@@ -34,6 +34,8 @@ export type Game = {
 
   // Price
   price_usd: number | null;
+  current_price_usd: number | null;
+  steam_facts: Record<string, unknown> | null;
 
   // OpenCritic
   opencritic_score: number | null;

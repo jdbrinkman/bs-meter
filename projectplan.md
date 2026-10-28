@@ -226,7 +226,9 @@ bs-meter/
 - [x] Critic layer: `critic_reviews` table + `article` source type (migration 010); OpenCritic reviews (40/game) stored; full text of up to 5 readable written reviews per game fed to the v2 prompt (Eurogamer, PC Gamer, GamesRadar+, IGN, Polygon work; GameSpot 403 and Game Informer JS-rendered are skipped); critics listed as sources at the bottom of the page, not shown prominently; OpenCritic aggregate score removed from the prompt; `POST /api/ingest/critics`
 - [ ] Evidence ladder: trusted YouTube -> widened YouTube -> OpenCritic written reviews -> Steam long-playtime reviews -> Reddit; evidence status full / limited / insufficient per game
 - [x] Fixed wrong OpenCritic entries (Resident Evil 4 Remake pointed at the 2005 game, Mass Effect 3 shared Andromeda's entry, Mortal Shell II had none); verified resolver `pickOpenCriticCandidate` (name + release year), seed `opencriticId` overrides, audit checks for shared IDs and review dates
-- [ ] Hard facts: Steam store price + IAP flag, IGDB time-to-beat, Steam achievement %
+- [x] Steam store facts (migration 011, `steam-store.ts`, `ingest-steam.ts`, `POST /api/ingest/steam`): current price, discount, IAP flag, DLC count, achievement stats; 32/35 games (Saros, Ghost of Yotei, Mass Effect 3 are not on Steam); verdict and prompt now use current price; 13 seed prices were >20% off
+- [~] Steam reviews rebuild: new sampler written (all-time + last-30-days + most helpful positive/negative from 20h+ players; stops cleanly on redirect) and unit-tested on SYNTHETIC fixtures; NOT validated live because store.steampowered.com/appreviews 302s to the homepage from the dev network (shared Zscaler IP, likely rate-limited); retry from another network or after cooldown
+- [ ] IGDB time-to-beat to replace hand-typed hours
 - [x] Remove OpenCritic score from the scoring prompt (display only)
 - [ ] One scoring version everywhere (home/browse/API/About on v2)
 - [ ] Gemini paid billing, then re-score all 35 once

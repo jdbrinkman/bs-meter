@@ -34,7 +34,9 @@ export default async function GameDetailPage({ params }: { params: PageParams })
 
   const meta = [
     game.genres?.[0],
-    game.price_usd ? `$${game.price_usd}` : null,
+    game.current_price_usd != null && game.current_price_usd !== Number(game.price_usd)
+      ? `$${game.current_price_usd}${game.price_usd && game.current_price_usd < Number(game.price_usd) ? ` (was $${game.price_usd})` : ""}`
+      : game.price_usd ? `$${game.price_usd}` : null,
     game.release_date ? new Date(game.release_date).getFullYear() : null,
   ].filter(Boolean);
 

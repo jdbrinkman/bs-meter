@@ -26,7 +26,7 @@ export async function scoreGameV2(gameId: string) {
 
   const juice = computeJuiceIndex(ratings, genreKey);
   const bs = computeBsIndex(ratings);
-  const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.price_usd, releaseDate: g.release_date });
+  const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.current_price_usd ?? g.price_usd, releaseDate: g.release_date });
 
   const { error: upErr } = await supabase
     .from("scores")
@@ -50,7 +50,7 @@ export async function recomputeAllV2() {
   const supabase = createAdminClient();
   const { data } = await supabase
     .from("scores")
-    .select("game_id, ratings, games (title, genres, developer, price_usd, release_date)")
+    .select("game_id, ratings, games (title, genres, developer, price_usd, current_price_usd, release_date)")
     .not("ratings", "is", null);
   const out = [];
   for (const row of data || []) {
@@ -59,7 +59,7 @@ export async function recomputeAllV2() {
     const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
     const juice = computeJuiceIndex(ratings, genreKey);
     const bs = computeBsIndex(ratings);
-    const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.price_usd, releaseDate: g.release_date });
+    const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.current_price_usd ?? g.price_usd, releaseDate: g.release_date });
     await supabase.from("scores").update({ juice_index: juice, bs_index: bs, verdict_v2: verdict }).eq("game_id", row.game_id);
     out.push({ title: g.title, genreKey, juice, bs, verdict });
   }

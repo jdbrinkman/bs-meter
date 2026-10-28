@@ -1,20 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  searchIGDB,
-  searchIGDBBySlug,
-  extractDeveloper,
-  extractPublisher,
-  formatCoverUrl,
-  filterPlatforms,
-} from "@/lib/api/igdb";
-import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
+import { urlLoads } from "@/lib/api/cover";
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic, getOpenCriticGame } from "@/lib/api/opencritic";
 import { ingestYouTubeSources } from "./ingest-youtube";
 import { refreshMetadata } from "./ingest-metadata";
 import { ingestCritics } from "./ingest-critics";
+import { ingestSteam } from "./ingest-steam";
 import { searchRedditSentiment } from "@/lib/api/reddit";
-import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
 import { SEED_GAMES } from "@/config/seed-games";
 
 export async function ingestGameData(
@@ -101,60 +93,8 @@ export async function ingestGameData(
       console.log(`Reddit sentiment fetched for ${title}`);
     }
 
-    // 6. Steam user reviews (optional — graceful failure)
-    try {
-      const { data: gameRecord } = await supabase
-        .from("games")
-        .select("steam_app_id")
-        .eq("id", gameId)
-        .single();
-
-      const steamAppId: number | null =
-        gameRecord?.steam_app_id ??
-        seedGame?.steamAppId ??
-        (await findSteamAppId(title));
-
-      if (steamAppId) {
-        if (!gameRecord?.steam_app_id) {
-          await supabase
-            .from("games")
-            .update({ steam_app_id: steamAppId })
-            .eq("id", gameId);
-        }
-
-        const steamData = await fetchSteamReviews(steamAppId);
-        if (steamData) {
-          await supabase
-            .from("games")
-            .update({
-              steam_review_score_desc: steamData.summary.review_score_desc,
-              steam_total_reviews: steamData.summary.total_reviews,
-            })
-            .eq("id", gameId);
-
-          const { error: steamSrcError } = await supabase.from("review_sources").upsert(
-            {
-              game_id: gameId,
-              source_type: "steam",
-              channel_name: "Steam Users",
-              video_id: String(steamAppId),
-              video_title: `Steam Reviews (${steamData.summary.review_score_desc})`,
-              transcript: steamData.reviewText,
-              url: `https://store.steampowered.com/app/${steamAppId}`,
-              fetched_at: new Date().toISOString(),
-            },
-            { onConflict: "game_id,source_type,video_id" }
-          );
-          if (steamSrcError) throw new Error(`Could not save Steam source: ${steamSrcError.message}`);
-
-          console.log(
-            `Steam reviews fetched for ${title}: ${steamData.summary.review_score_desc} (${steamData.summary.total_reviews.toLocaleString()} reviews)`
-          );
-        }
-      }
-    } catch (error) {
-      console.warn(`Steam ingestion failed for ${title}:`, error);
-    }
+    // 6. Steam store facts + review sample
+    await ingestSteam(gameId, title);
 
     console.log(`Ingestion complete for: ${title}`);
     // Final check: a game must never finish ingest with a broken or missing cover

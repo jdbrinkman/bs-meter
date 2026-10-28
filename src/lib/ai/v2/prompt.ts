@@ -6,6 +6,29 @@ export type CriticSnippet = { outlet: string; snippet: string | null };
 
 const fmt = (m: MeasureDef) => `- ${m.key} — ${m.label}: ${m.summary}\n  Rubric: ${m.rubric}`;
 
+function steamFactsLine(game: Game): string {
+  const f = game.steam_facts as {
+    hasInAppPurchases?: boolean; dlcCount?: number; isFree?: boolean;
+    achievements?: { total: number; mostCommonPercent: number | null; rarestPercent: number | null; rareShare: number | null } | null;
+    reviews?: { recent?: { percentPositive: number | null; total: number } | null; allTime?: { positive: number; negative: number } };
+  } | null;
+  if (!f) return "";
+  const bits: string[] = [];
+  if (f.isFree) bits.push("free to play");
+  bits.push(f.hasInAppPurchases ? "Steam lists in-app purchases" : "no in-app purchases listed on Steam");
+  if (f.dlcCount) bits.push(`${f.dlcCount} DLC/expansions`);
+  if (f.achievements) {
+    const a = f.achievements;
+    bits.push(`${a.total} achievements, the most common earned by ${a.mostCommonPercent}% of players and the rarest by ${a.rarestPercent}%${a.rareShare != null ? `, ${Math.round(a.rareShare * 100)}% earned by under 5% of players` : ""}`);
+  }
+  const all = f.reviews?.allTime;
+  const recent = f.reviews?.recent;
+  if (all && recent?.percentPositive != null && all.positive + all.negative > 0) {
+    bits.push(`Steam reviews: ${Math.round((all.positive / (all.positive + all.negative)) * 100)}% positive all-time, ${recent.percentPositive}% in the last 30 days`);
+  }
+  return bits.length ? `- Steam facts: ${bits.join("; ")}\n` : "";
+}
+
 export function buildPromptV2(
   game: Game,
   reviewSources: ReviewSource[],
@@ -36,9 +59,9 @@ export function buildPromptV2(
 ## GAME
 - ${game.title} (${game.release_date ? new Date(game.release_date).getFullYear() : "Unknown"})
 - Genre profile: ${genre.displayName}
-- Price: $${game.price_usd ?? "Unknown"}
+- Price today: $${game.current_price_usd ?? game.price_usd ?? "Unknown"}${game.current_price_usd != null && game.price_usd != null && game.current_price_usd < game.price_usd ? ` (list price $${game.price_usd})` : ""}
 - HowLongToBeat: Main ${game.main_story_hours ?? "?"}h | Main+Extras ${game.main_extras_hours ?? "?"}h | Completionist ${game.completionist_hours ?? "?"}h
-- Genre notes: ${genre.aiGuidance}
+${steamFactsLine(game)}- Genre notes: ${genre.aiGuidance}
 
 ## REVIEWER TRANSCRIPTS (${yt.length})
 ${transcripts || "None available. Base ratings on the other data and mark basis as inferred."}
