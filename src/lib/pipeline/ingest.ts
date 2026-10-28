@@ -133,15 +133,21 @@ export async function ingestGameData(
 
         const transcript = await fetchTranscript(searchResult.videoId);
 
-        await supabase.from("review_sources").insert({
-          game_id: gameId,
-          source_type: "youtube",
-          channel_name: reviewer.channelName,
-          video_id: searchResult.videoId,
-          video_title: searchResult.title,
-          transcript: transcript,
-          url: `https://www.youtube.com/watch?v=${searchResult.videoId}`,
-        });
+        const { error: srcError } = await supabase.from("review_sources").upsert(
+          {
+            game_id: gameId,
+            source_type: "youtube",
+            channel_name: reviewer.channelName,
+            video_id: searchResult.videoId,
+            video_title: searchResult.title,
+            transcript: transcript,
+            url: `https://www.youtube.com/watch?v=${searchResult.videoId}`,
+            published_at: searchResult.publishedAt,
+            fetched_at: new Date().toISOString(),
+          },
+          { onConflict: "game_id,source_type,video_id" }
+        );
+        if (srcError) throw new Error(`Could not save review source: ${srcError.message}`);
 
         // Small delay to respect YouTube API rate limits
         await new Promise((resolve) => setTimeout(resolve, 200));
@@ -190,15 +196,20 @@ export async function ingestGameData(
             })
             .eq("id", gameId);
 
-          await supabase.from("review_sources").insert({
-            game_id: gameId,
-            source_type: "steam",
-            channel_name: "Steam Users",
-            video_id: String(steamAppId),
-            video_title: `Steam Reviews (${steamData.summary.review_score_desc})`,
-            transcript: steamData.reviewText,
-            url: `https://store.steampowered.com/app/${steamAppId}`,
-          });
+          const { error: steamSrcError } = await supabase.from("review_sources").upsert(
+            {
+              game_id: gameId,
+              source_type: "steam",
+              channel_name: "Steam Users",
+              video_id: String(steamAppId),
+              video_title: `Steam Reviews (${steamData.summary.review_score_desc})`,
+              transcript: steamData.reviewText,
+              url: `https://store.steampowered.com/app/${steamAppId}`,
+              fetched_at: new Date().toISOString(),
+            },
+            { onConflict: "game_id,source_type,video_id" }
+          );
+          if (steamSrcError) throw new Error(`Could not save Steam source: ${steamSrcError.message}`);
 
           console.log(
             `Steam reviews fetched for ${title}: ${steamData.summary.review_score_desc} (${steamData.summary.total_reviews.toLocaleString()} reviews)`

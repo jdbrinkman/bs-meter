@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "audit": "node --no-warnings scripts/audit.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.46.0",
