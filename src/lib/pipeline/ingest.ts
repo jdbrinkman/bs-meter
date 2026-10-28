@@ -10,10 +10,9 @@ import {
 import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
 import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic } from "@/lib/api/opencritic";
-import { searchYouTubeChannel, fetchTranscript } from "@/lib/api/youtube";
+import { ingestYouTubeSources } from "./ingest-youtube";
 import { searchRedditSentiment } from "@/lib/api/reddit";
 import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
-import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
 import { SEED_GAMES } from "@/config/seed-games";
 
 export async function ingestGameData(
@@ -126,38 +125,7 @@ export async function ingestGameData(
     }
 
     // 4. YouTube transcripts from trusted reviewers
-    for (const reviewer of TRUSTED_REVIEWERS) {
-      try {
-        const searchResult = await searchYouTubeChannel(title, reviewer);
-        if (!searchResult) continue;
-
-        const transcript = await fetchTranscript(searchResult.videoId);
-
-        const { error: srcError } = await supabase.from("review_sources").upsert(
-          {
-            game_id: gameId,
-            source_type: "youtube",
-            channel_name: reviewer.channelName,
-            video_id: searchResult.videoId,
-            video_title: searchResult.title,
-            transcript: transcript,
-            url: `https://www.youtube.com/watch?v=${searchResult.videoId}`,
-            published_at: searchResult.publishedAt,
-            fetched_at: new Date().toISOString(),
-          },
-          { onConflict: "game_id,source_type,video_id" }
-        );
-        if (srcError) throw new Error(`Could not save review source: ${srcError.message}`);
-
-        // Small delay to respect YouTube API rate limits
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } catch (error) {
-        console.warn(
-          `Failed to fetch review from ${reviewer.channelName}:`,
-          error
-        );
-      }
-    }
+    await ingestYouTubeSources(gameId, title);
 
     // 5. Reddit sentiment via Perplexity (optional — graceful failure)
     const redditSentiment = await searchRedditSentiment(title);

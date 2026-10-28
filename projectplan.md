@@ -217,10 +217,10 @@ bs-meter/
 ### Phase 2b — Data integrity and evidence sourcing (planned)
 - [x] Fix 5 wrong trusted-channel IDs (FightinCowboy, Mortismal, Sphere Hunter, Iron Pineapple, Worth A Buy); verify by handle
 - [x] `npm run audit` health check (first version: channels, duplicates, coverage, v2 completeness, release-date cross-check vs Steam) (channel IDs resolve, IGDB vs Steam release-date cross-check, no dupes, evidence age/coverage, one score per game)
-- [~] Ingest log: `ingest_log` table created (migration 009); ingest does not write to it yet
+- [~] Ingest log: YouTube step writes to `ingest_log`; Steam/OpenCritic/IGDB steps do not yet
 - [~] Safe writes: dedupe + unique key + upsert + published_at done (migration 009, ingest.ts); v2 write still needs affected-row check
 - [ ] Fix IGDB records (Witcher 3 bundle, Hollow Knight, Silksong release dates) and re-fetch covers
-- [ ] YouTube lookup rebuild: ONE broad "[game] review" search (100 units) filtered to the trusted-channel set, then variant queries / channel-restricted search only if short; strict title match, retries, keep start+end of transcripts (upload lists do NOT work for huge channels like IGN, 185k videos)
+- [x] YouTube lookup rebuild (`youtube-lookup.ts`, `ingest-youtube.ts`, `/api/ingest/youtube`; 25 offline title-match cases in `scripts/test-youtube.mjs`; the 10 games with no transcripts now have 2-9 each; transcripts keep start+end, 3 retries, every step logged to ingest_log): ONE broad "[game] review" search (100 units) filtered to the trusted-channel set, then variant queries / channel-restricted search only if short; strict title match, retries, keep start+end of transcripts (upload lists do NOT work for huge channels like IGN, 185k videos)
 - [x] Expand trusted channels: IGN, GameSpot, Eurogamer, PC Gamer, Easy Allies, GamesRadar, Rerez, Raycevick (approved; 16 channels, IDs verified by audit)
 - [ ] Critic layer (decision: list critics as sources at the bottom of the page, possibly not show at all): store per-review OpenCritic data (outlet, score, snippet, url, date, ~160-220 reviews/game available); fetch full text of top ~5 major-outlet articles (fetch tested OK on Eurogamer/PC Gamer/IGN/TheGamer); show critic consensus + major-outlet scores on page; critic TEXT is evidence, aggregate score is not fed to the rating prompt
 - [ ] Evidence ladder: trusted YouTube -> widened YouTube -> OpenCritic written reviews -> Steam long-playtime reviews -> Reddit; evidence status full / limited / insufficient per game
