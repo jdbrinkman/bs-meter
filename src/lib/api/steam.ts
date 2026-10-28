@@ -131,52 +131,65 @@ export function buildSteamReviewText(sample: Omit<SteamSample, "reviewText">): s
 
 const pctPositive = (p: number, n: number) => (p + n > 0 ? Math.round((p / (p + n)) * 100) : null);
 
-async function steamJson(url: string): Promise<{ ok: true; json: any } | { ok: false; reason: string }> {
+// Valve's documented replacement for the deprecated store.steampowered.com/appreviews endpoint.
+// https://partner.steamgames.com/doc/webapi/IUserReviewsService  (no key needed; anonymous calls share a lower rate limit)
+// Enums: filter 0=Helpful 1=Recent; review_type 0=All 1=Positive 2=Negative; purchase_type 1=All.
+type ServiceResult = { ok: true; response: any } | { ok: false; reason: string; rateLimited: boolean };
+
+async function steamReviewsService(input: Record<string, unknown>): Promise<ServiceResult> {
   try {
-    const res = await fetch(url, { headers: { "User-Agent": "BSMeter/1.0 game-review-aggregator" }, redirect: "manual", signal: AbortSignal.timeout(15000) });
-    if (res.status >= 300 && res.status < 400) return { ok: false, reason: `redirected (${res.status}), likely rate-limited` };
-    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}` };
-    if (!(res.headers.get("content-type") || "").includes("json")) return { ok: false, reason: "response was not JSON" };
+    const url = "https://api.steampowered.com/IUserReviewsService/GetAppReviews/v1/?" + new URLSearchParams({ input_json: JSON.stringify(input) });
+    const res = await fetch(url, { headers: { "User-Agent": "BSMeter/1.0 game-review-aggregator" }, redirect: "manual", signal: AbortSignal.timeout(20000) });
+    if (res.status === 429) return { ok: false, reason: "HTTP 429 (rate limited)", rateLimited: true };
+    if (res.status >= 300 && res.status < 400) return { ok: false, reason: `redirected (${res.status})`, rateLimited: true };
+    if (!res.ok) return { ok: false, reason: `HTTP ${res.status}`, rateLimited: false };
     const json = await res.json();
-    if (!json?.success) return { ok: false, reason: "success=0" };
-    return { ok: true, json };
+    if (!json?.response) return { ok: false, reason: "no response object", rateLimited: false };
+    return { ok: true, response: json.response };
   } catch (error) {
-    return { ok: false, reason: error instanceof Error ? error.message : String(error) };
+    return { ok: false, reason: error instanceof Error ? error.message : String(error), rateLimited: false };
   }
 }
 
 export async function fetchSteamReviews(appid: number): Promise<{ ok: true; data: SteamSample } | { ok: false; reason: string }> {
-  const base = `https://store.steampowered.com/appreviews/${appid}?json=1&purchase_type=all`;
-  const pause = () => new Promise((r) => setTimeout(r, 1500));
+  const pause = () => new Promise((r) => setTimeout(r, 1200));
+  const base = { appid, languages: ["all"], purchase_type: 1 };
 
-  const all = await steamJson(`${base}&language=all&filter=all&num_per_page=0`);
+  // 1. all-time summary
+  const all = await steamReviewsService({ ...base, filter: 1, num_per_page: 0 });
   if (!all.ok) return { ok: false, reason: `all-time summary: ${all.reason}` };
-  const qs = all.json.query_summary;
+  const qs = all.response.query_summary;
+  if (!qs) return { ok: false, reason: "all-time summary: no query_summary" };
 
+  // 2-3. last 30 days: Helpful + day_range gives windowed counts in total_matching
+  let recent: SteamSample["recent"] = null;
   await pause();
-  const recentRes = await steamJson(`${base}&language=all&filter=all&day_range=30&num_per_page=0`);
-  const rq = recentRes.ok ? recentRes.json.query_summary : null;
+  const recentPos = await steamReviewsService({ ...base, filter: 0, day_range: 30, review_type: 1, num_per_page: 1 });
+  if (recentPos.ok) {
+    await pause();
+    const recentNeg = await steamReviewsService({ ...base, filter: 0, day_range: 30, review_type: 2, num_per_page: 1 });
+    if (recentNeg.ok) {
+      const p = recentPos.response.total_matching ?? 0;
+      const n = recentNeg.response.total_matching ?? 0;
+      recent = { positive: p, negative: n, total: p + n, percentPositive: pctPositive(p, n) };
+    }
+  }
 
+  // 4-5. most helpful reviews from players with real playtime, all time
+  const longPlay = { appid, languages: ["english"], purchase_type: 1, filter: 0, day_range: 0, playtime_min_hours: MIN_PLAYTIME_HOURS, num_per_page: 40 };
   await pause();
-  const neg = await steamJson(`${base}&language=english&filter=all&review_type=negative&num_per_page=100`);
+  const neg = await steamReviewsService({ ...longPlay, review_type: 2 });
   await pause();
-  const pos = await steamJson(`${base}&language=english&filter=all&review_type=positive&num_per_page=100`);
+  const pos = await steamReviewsService({ ...longPlay, review_type: 1 });
 
   const playtimeReviews = [
-    ...(neg.ok ? pickPlaytimeReviews(neg.json.reviews ?? [], false) : []),
-    ...(pos.ok ? pickPlaytimeReviews(pos.json.reviews ?? [], true) : []),
+    ...(neg.ok ? pickPlaytimeReviews(neg.response.reviews ?? [], false) : []),
+    ...(pos.ok ? pickPlaytimeReviews(pos.response.reviews ?? [], true) : []),
   ];
 
   const sample = {
-    allTime: {
-      desc: qs.review_score_desc ?? "Unknown",
-      positive: qs.total_positive ?? 0,
-      negative: qs.total_negative ?? 0,
-      total: qs.total_reviews ?? 0,
-    },
-    recent: rq
-      ? { positive: rq.total_positive ?? 0, negative: rq.total_negative ?? 0, total: rq.total_reviews ?? 0, percentPositive: pctPositive(rq.total_positive ?? 0, rq.total_negative ?? 0) }
-      : null,
+    allTime: { desc: qs.review_score_desc ?? "Unknown", positive: qs.total_positive ?? 0, negative: qs.total_negative ?? 0, total: qs.total_reviews ?? 0 },
+    recent,
     playtimeReviews,
   };
   return { ok: true, data: { ...sample, reviewText: buildSteamReviewText(sample) } };

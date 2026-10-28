@@ -1,6 +1,5 @@
-// Offline tests for Steam parsing and review sampling. The review fixtures are SYNTHETIC, shaped
-// like Steam's documented appreviews response, because that endpoint is currently throttled from
-// the developer's network and could not be recorded live. appdetails/achievements use the real shape.
+// Offline tests for Steam parsing and review sampling. Review fixtures are synthetic but shaped like
+// the live IUserReviewsService/GetAppReviews response (verified against the real endpoint 2026-10-28).
 import { pickPlaytimeReviews, buildSteamReviewText } from "../src/lib/api/steam.ts";
 import { parseAppDetails, summarizeAchievements } from "../src/lib/api/steam-store.ts";
 
