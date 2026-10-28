@@ -10,6 +10,14 @@ for (const line of readFileSync(new URL("../.env.local", import.meta.url), "utf8
   const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
   if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^"|"$/g, "");
 }
+// DF-style tech titles: [game, title, expected under tech rules]
+const techCases = [
+  ["Elden Ring", "Elden Ring PC: Tech Review - Performance, Stutter, Settings", true],
+  ["Resident Evil 4 Remake", "Resident Evil 4 Remake PS5 vs Series X vs PC - Face-Off", true],
+  ["Starfield", "Starfield PS5 Pro Review - A Good Game... But There Are Issues", true],
+  ["Elden Ring", "Elden Ring Trailer Analysis", false],
+  ["Elden Ring", "DF Direct Weekly: Elden Ring news", false],
+];
 const siblings = SEED_GAMES.map((g) => g.title);
 const mode = process.argv[2];
 

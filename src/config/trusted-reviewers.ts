@@ -7,6 +7,8 @@ export type TrustedReviewer = {
   searchSuffix: string;
   /** YouTube @handle (without @) the channel ID must resolve to; checked by the audit script. */
   handle: string;
+  /** Technical-analysis channel: accept tech reviews and face-offs (see youtube-lookup.ts). */
+  tech?: boolean;
   /** Expected channel title, normalized by the audit (lowercase, no spaces). */
   expectedTitle: string;
 };
@@ -43,6 +45,7 @@ export const TRUSTED_REVIEWERS: TrustedReviewer[] = [
       "Essential for detecting performance bloat. If a game runs at 20fps or is riddled with bugs, they provide the data.",
     searchSuffix: "tech review",
     handle: "DigitalFoundry",
+    tech: true,
     expectedTitle: "Digital Foundry",
   },
   {

@@ -8,7 +8,12 @@
 // Candidates are filtered by title match, review-type words, and length, then
 // the best one per channel is kept.
 
-export type Reviewer = { channelId: string; channelName: string };
+export type Reviewer = {
+  channelId: string;
+  channelName: string;
+  /** Technical-analysis channel (e.g. Digital Foundry): accepts tech reviews and face-offs, which are rarely titled "review". */
+  tech?: boolean;
+};
 
 export type FoundVideo = {
   channelId: string;
@@ -92,10 +97,18 @@ export function titleMatchesGame(videoTitle: string, gameTitle: string, siblingT
   return true;
 }
 
+// Tech channels name videos "Tech Review", "PS5 vs Series X", "Performance Analysis"...
+const TECH_WORDS = /\b(tech review|face-?off|performance|analysis|pc|ps5|ps4|xbox|series [xs]|switch 2?|steam deck|frame ?rate|60fps|vs\.?|versus|comparison)\b/i;
+const REJECT_WORDS_TECH =
+  /\b(trailer|walkthrough|guide|tier list|top \d+|best|worst|ranking|ranked|unboxing|reaction|livestream|podcast|news|patch notes|dlc|expansion|montage|speedrun|funny|moments|explained|ending|lore|preview|hands-on|first look|mods?|direct|weekly)\b/i;
+
 function reviewScore(title: string): number {
   let s = 0;
   if (/\breview\b/i.test(title)) s += 3;
   if (/(after 100|worth)/i.test(title)) s += 1;
+  // For tech channels, prefer the mainstream platforms over a handheld/port analysis
+  if (/\b(pc|ps5)\b/i.test(title)) s += 1;
+  if (/\bswitch\b/i.test(title)) s -= 1;
   return s;
 }
 
@@ -122,6 +135,7 @@ export async function findReviewVideos(gameTitle: string, opts: LookupOptions): 
   const notes: string[] = [];
   let searches = 0;
   const trusted = new Map(opts.reviewers.map((r) => [r.channelId, r.channelName]));
+  const techChannels = new Set(opts.reviewers.filter((r) => r.tech).map((r) => r.channelId));
 
   async function runSearch(q: string, method: string, channelId?: string) {
     if (searches >= maxSearches) return;
@@ -137,7 +151,9 @@ export async function findReviewVideos(gameTitle: string, opts: LookupOptions): 
       const title = decode(it.snippet.title);
       if (!trusted.has(channelId) || seenVideos.has(it.id.videoId)) continue;
       if (!titleMatchesGame(title, gameTitle, opts.siblingTitles)) continue;
-      if (REJECT_WORDS.test(title) || !REVIEW_WORDS.test(title)) continue;
+      const tech = techChannels.has(channelId);
+      if ((tech ? REJECT_WORDS_TECH : REJECT_WORDS).test(title)) continue;
+      if (!REVIEW_WORDS.test(title) && !(tech && TECH_WORDS.test(title))) continue;
       candidates.push({ channelId, videoId: it.id.videoId, title, publishedAt: it.snippet.publishedAt, method });
     }
     if (!candidates.length) return;
@@ -167,6 +183,10 @@ export async function findReviewVideos(gameTitle: string, opts: LookupOptions): 
   }
 
   await runSearch(`${gameTitle} review`, "broad");
+  // Tech channels (Digital Foundry) rarely surface for "<game> review"; look for them directly.
+  for (const r of opts.reviewers.filter((x) => x.tech)) {
+    if (!byChannel.has(r.channelId)) await runSearch(`${gameTitle} tech review`, `tech:${r.channelName}`, r.channelId);
+  }
   if (byChannel.size < target) await runSearch(`${gameTitle} review after 100%`, "variant-100");
   if (byChannel.size < target) await runSearch(`is ${gameTitle} worth it`, "variant-worth");
 
