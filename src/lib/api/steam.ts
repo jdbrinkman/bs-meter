@@ -134,7 +134,12 @@ const pctPositive = (p: number, n: number) => (p + n > 0 ? Math.round((p / (p + 
 // Valve's documented replacement for the deprecated store.steampowered.com/appreviews endpoint.
 // https://partner.steamgames.com/doc/webapi/IUserReviewsService  (no key needed; anonymous calls share a lower rate limit)
 // Enums: filter 0=Helpful 1=Recent; review_type 0=All 1=Positive 2=Negative; purchase_type 1=All.
-type ServiceResult = { ok: true; response: any } | { ok: false; reason: string; rateLimited: boolean };
+type ServiceResponse = {
+  query_summary?: { review_score_desc?: string; total_positive?: number; total_negative?: number; total_reviews?: number };
+  reviews?: RawReview[];
+  total_matching?: number;
+};
+type ServiceResult = { ok: true; response: ServiceResponse } | { ok: false; reason: string; rateLimited: boolean };
 
 async function steamReviewsService(input: Record<string, unknown>): Promise<ServiceResult> {
   try {

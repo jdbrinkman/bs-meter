@@ -22,7 +22,14 @@ export type PriceHistory = {
   checkedAt: string;
 };
 
-type Json = Record<string, any>;
+type Money = { amount: number; currency?: string };
+type Json = {
+  found?: boolean;
+  game?: { id: string };
+  id?: string;
+  historyLow?: { all?: Money; y1?: Money; m3?: Money };
+  deals?: { shop?: { name: string }; price: Money; regular?: Money; cut?: number; timestamp: string }[];
+};
 
 function key(): string {
   const k = process.env.ITAD_API_KEY;
@@ -45,21 +52,21 @@ async function call(method: "GET" | "POST", path: string, params: Record<string,
 /** Looks a game up by its Steam App ID (exact). Returns null if ITAD does not know it. */
 export async function lookupBySteamAppId(appId: number): Promise<string | null> {
   const r = (await call("GET", "/games/lookup/v1", { appid: String(appId) })) as Json;
-  return r.found ? r.game.id : null;
+  return r.found && r.game ? r.game.id : null;
 }
 
 export function summarizePrices(itadId: string, entry: Json, now = new Date()): PriceHistory {
-  const money = (m: Json | undefined) => (m && typeof m.amount === "number" ? m.amount : null);
-  const deals: Json[] = (entry.deals ?? []).filter((d: Json) => d.price?.currency === "USD");
-  const ageDays = (d: Json) => (now.getTime() - new Date(d.timestamp).getTime()) / 86_400_000;
-  const fresh = deals.filter((d) => RELIABLE_SHOPS.has(d.shop?.name) && ageDays(d) <= MAX_DEAL_AGE_DAYS);
+  const money = (m: Money | undefined) => (m && typeof m.amount === "number" ? m.amount : null);
+  const deals = (entry.deals ?? []).filter((d) => d.price?.currency === "USD");
+  const ageDays = (d: { timestamp: string }) => (now.getTime() - new Date(d.timestamp).getTime()) / 86_400_000;
+  const fresh = deals.filter((d) => RELIABLE_SHOPS.has(d.shop?.name ?? "") && ageDays(d) <= MAX_DEAL_AGE_DAYS);
   const best = fresh.sort((a, b) => a.price.amount - b.price.amount)[0];
   const steam = deals.find((d) => d.shop?.name === "Steam");
   return {
     itadId,
     historyLow: { all: money(entry.historyLow?.all), y1: money(entry.historyLow?.y1), m3: money(entry.historyLow?.m3) },
     bestFreshDeal: best
-      ? { shop: best.shop.name, amount: best.price.amount, regular: best.regular?.amount ?? best.price.amount, cut: best.cut ?? 0, timestamp: best.timestamp }
+      ? { shop: best.shop?.name ?? "Unknown", amount: best.price.amount, regular: best.regular?.amount ?? best.price.amount, cut: best.cut ?? 0, timestamp: best.timestamp }
       : null,
     steamPrice: steam ? steam.price.amount : null,
     checkedAt: now.toISOString(),
@@ -71,6 +78,6 @@ export async function fetchPrices(itadIds: string[]): Promise<Map<string, PriceH
   const out = new Map<string, PriceHistory>();
   if (!itadIds.length) return out;
   const rows = (await call("POST", "/games/prices/v3", { country: "US", deals: "false", capacity: "0" }, itadIds)) as Json[];
-  for (const row of rows) out.set(row.id, summarizePrices(row.id, row));
+  for (const row of rows) if (row.id) out.set(row.id, summarizePrices(row.id, row));
   return out;
 }
