@@ -231,7 +231,7 @@ bs-meter/
 - [x] Price history via IsThereAnyDeal (`ITAD_API_KEY`, migration 012, `itad.ts`, `ingest-prices.ts`, `POST /api/ingest/prices`): all-time low and best fresh price at reliable stores for 32 games; ITAD's Steam price matches the Steam API on 32/32 (audit cross-check); `price_source` labels steam vs list price; page shows "all-time low $X" and "list price". Verdict price stays Steam's own price (ITAD cheapest deals are often stale or from gray-market sellers: 22 of 35 older than 14 days)
 - [ ] IGDB time-to-beat to replace hand-typed hours
 - [x] Remove OpenCritic score from the scoring prompt (display only)
-- [ ] One scoring version everywhere (home/browse/API/About on v2)
+- [x] One scoring version everywhere: home, /games, search, /api/games, About page and cards all read v2 (`verdict_v2`, `bs_index`, `juice_index`); shared `GameBrowser` + `listing.ts`; verdict rules in one place (`VERDICT_RULES`) and rendered on the About page from the same constants; v2 is the only scoring writer (`scoreGameV2` upserts the score row, saves genre/confidence/model/time, sets analysis_status, fails loudly); `/api/score` and `/api/analyze` now score with v2; v1 code deleted (formula, brackets, v1 prompt/parser, gauges, signal/dimension components); v1 DB columns kept nullable as legacy (migration 013); filters are Verdict + Genre; unrated games show "Not rated yet"
 - [ ] Gemini paid billing, then re-score all 35 once
 
 ### Phase 3 — Scale (week 6+)

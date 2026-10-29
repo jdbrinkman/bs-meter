@@ -1,57 +1,87 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeGameV2 } from "@/lib/ai/v2/analyze";
+import { GEMINI_MODEL } from "@/lib/ai/gemini";
 import { mapIGDBGenreToKey } from "@/config/genre-weights";
 import { computeBsIndex, computeJuiceIndex, deriveVerdictV2 } from "@/lib/scoring/v2";
 import type { Ratings } from "@/lib/scoring/v2";
 import type { Game, ReviewSource } from "@/lib/types";
 
-/** Re-rate a game with v2 using stored sources. Writes only the v2 columns; v1 data is untouched. */
+/**
+ * Rates a game with the stored sources and writes the v2 result. This is the only scoring path.
+ * Does not fetch anything: run ingest first. Creates the score row if the game has none.
+ */
 export async function scoreGameV2(gameId: string) {
   const supabase = createAdminClient();
   const { data: game, error } = await supabase.from("games").select("*").eq("id", gameId).single();
   if (error || !game) throw new Error(`Game not found: ${gameId}`);
 
-  const { data: sources } = await supabase.from("review_sources").select("*").eq("game_id", gameId);
-  const { data: critics } = await supabase
-    .from("critic_reviews")
-    .select("outlet, snippet")
-    .eq("game_id", gameId)
-    .order("published_at", { ascending: true })
-    .limit(40);
-  const g = game as Game;
-  const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
+  try {
+    await supabase.from("games").update({ analysis_status: "analyzing" }).eq("id", gameId);
 
-  const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey, critics || []);
-  const ratings = analysis.ratings;
+    const { data: sources } = await supabase.from("review_sources").select("*").eq("game_id", gameId);
+    const { data: critics } = await supabase
+      .from("critic_reviews")
+      .select("outlet, snippet")
+      .eq("game_id", gameId)
+      .order("published_at", { ascending: true })
+      .limit(40);
+    const g = game as Game;
+    const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
 
-  const juice = computeJuiceIndex(ratings, genreKey);
-  const bs = computeBsIndex(ratings);
-  const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.current_price_usd ?? g.price_usd, releaseDate: g.release_date });
+    const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey, critics || []);
+    const ratings = analysis.ratings;
 
-  const { error: upErr } = await supabase
-    .from("scores")
-    .update({
-      ratings,
-      juice_index: juice,
-      bs_index: bs,
-      verdict_v2: verdict,
-      headline: analysis.headline,
-      rough_launch: analysis.rough_launch,
-      scoring_version: 2,
-    })
-    .eq("game_id", gameId);
-  if (upErr) throw new Error(upErr.message);
+    const juice = computeJuiceIndex(ratings, genreKey);
+    const bs = computeBsIndex(ratings);
+    const verdict = deriveVerdictV2({
+      juice,
+      bs,
+      broken: ratings.broken.rating,
+      priceUsd: g.current_price_usd ?? g.price_usd,
+      releaseDate: g.release_date,
+    });
 
-  return { title: g.title, genreKey, juice, bs, verdict };
+    const { data: saved, error: upErr } = await supabase
+      .from("scores")
+      .upsert(
+        {
+          game_id: gameId,
+          ratings,
+          juice_index: juice,
+          bs_index: bs,
+          verdict_v2: verdict,
+          headline: analysis.headline,
+          rough_launch: analysis.rough_launch,
+          genre_rule_applied: genreKey,
+          confidence: analysis.confidence,
+          model_version: GEMINI_MODEL,
+          scoring_version: 2,
+          scored_at: new Date().toISOString(),
+        },
+        { onConflict: "game_id" }
+      )
+      .select("id");
+    if (upErr) throw new Error(upErr.message);
+    if (!saved?.length) throw new Error("Score was not saved (no row returned)");
+
+    await supabase.from("games").update({ analysis_status: "complete", analyzed_at: new Date().toISOString(), error_log: null }).eq("id", gameId);
+    return { title: g.title, genreKey, juice, bs, verdict };
+  } catch (e) {
+    const message = e instanceof Error ? e.message : String(e);
+    await supabase.from("games").update({ analysis_status: "error", error_log: message.slice(0, 500) }).eq("id", gameId);
+    throw e;
+  }
 }
 
 /** Recompute indexes and verdicts from stored ratings (no AI calls). Use after tuning the math. */
 export async function recomputeAllV2() {
   const supabase = createAdminClient();
-  const { data } = await supabase
+  const { data, error } = await supabase
     .from("scores")
     .select("game_id, ratings, games (title, genres, developer, price_usd, current_price_usd, release_date)")
     .not("ratings", "is", null);
+  if (error) throw new Error(error.message);
+
   const out = [];
   for (const row of data || []) {
     const g = (Array.isArray(row.games) ? row.games[0] : row.games) as unknown as Game;
@@ -59,8 +89,18 @@ export async function recomputeAllV2() {
     const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
     const juice = computeJuiceIndex(ratings, genreKey);
     const bs = computeBsIndex(ratings);
-    const verdict = deriveVerdictV2({ juice, bs, broken: ratings.broken.rating, priceUsd: g.current_price_usd ?? g.price_usd, releaseDate: g.release_date });
-    await supabase.from("scores").update({ juice_index: juice, bs_index: bs, verdict_v2: verdict }).eq("game_id", row.game_id);
+    const verdict = deriveVerdictV2({
+      juice,
+      bs,
+      broken: ratings.broken.rating,
+      priceUsd: g.current_price_usd ?? g.price_usd,
+      releaseDate: g.release_date,
+    });
+    const { error: upErr } = await supabase
+      .from("scores")
+      .update({ juice_index: juice, bs_index: bs, verdict_v2: verdict, genre_rule_applied: genreKey })
+      .eq("game_id", row.game_id);
+    if (upErr) throw new Error(`${g.title}: ${upErr.message}`);
     out.push({ title: g.title, genreKey, juice, bs, verdict });
   }
   return out;

@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("games")
-    .select("slug, title, cover_url, developer, scores(bs_score, verdict)")
+    .select("slug, title, cover_url, developer, scores(verdict_v2, bs_index)")
     .eq("analysis_status", "complete")
     .ilike("title", `%${q}%`)
     .limit(8);

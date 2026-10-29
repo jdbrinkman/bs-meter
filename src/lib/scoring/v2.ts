@@ -147,6 +147,23 @@ export const VERDICTS: Record<VerdictKey, { label: string; color: string }> = {
   skip: { label: "Skip", color: "#EF4444" },
 };
 
+// Verdict rules. One place, so the code and the methodology page cannot disagree.
+export const VERDICT_RULES = {
+  /** "Not yet": Broken at or above this, and the game is newer than notYetMaxAgeMonths. */
+  notYetBroken: 4,
+  notYetMaxAgeMonths: 24,
+  /** "Skip": juice below this... */
+  skipJuiceBelow: 50,
+  /** ...or BS at or above this while juice is under skipHighBsJuiceBelow. */
+  skipBsAtLeast: 65,
+  skipHighBsJuiceBelow: 80,
+  /** "Worth it": juice at least this (cheaper games / pricier games) and BS at most worthBsAtMost. */
+  worthJuiceCheap: 65,
+  worthJuiceExpensive: 72,
+  expensiveAbove: 40,
+  worthBsAtMost: 60,
+} as const;
+
 export function deriveVerdictV2(input: {
   juice: number;
   bs: number;
@@ -155,14 +172,14 @@ export function deriveVerdictV2(input: {
   releaseDate: string | null;
 }): VerdictKey {
   const { juice, bs, broken, priceUsd, releaseDate } = input;
+  const r = VERDICT_RULES;
   // "Not yet" is for recent releases that are rough today. Older games' source
   // reviews describe launch-era problems that have mostly been patched.
   const monthsOld = releaseDate ? (Date.now() - new Date(releaseDate).getTime()) / 2.63e9 : 999;
-  if (broken >= 4 && monthsOld < 24) return "not-yet";
-  if (juice < 50 || (bs >= 65 && juice < 80)) return "skip";
-  const price = priceUsd ?? 0;
-  const juiceNeeded = price > 40 ? 72 : 65;
-  if (juice >= juiceNeeded && bs <= 60) return "worth-it";
+  if (broken >= r.notYetBroken && monthsOld < r.notYetMaxAgeMonths) return "not-yet";
+  if (juice < r.skipJuiceBelow || (bs >= r.skipBsAtLeast && juice < r.skipHighBsJuiceBelow)) return "skip";
+  const juiceNeeded = (priceUsd ?? 0) > r.expensiveAbove ? r.worthJuiceExpensive : r.worthJuiceCheap;
+  if (juice >= juiceNeeded && bs <= r.worthBsAtMost) return "worth-it";
   return "wait";
 }
 
