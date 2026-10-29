@@ -336,4 +336,37 @@ export const SEED_GAMES: SeedGame[] = [
     genreKey: "open-world-rpg",
     steamAppId: 3751260,
   },
+  // Turn-based tactics (added for genre variety; ingested only, not yet scored)
+  {
+    // 2025 remaster (IGDB 347121), not the 1997 PSX original or the War of the Lions PSP port
+    title: "Final Fantasy Tactics: The Ivalice Chronicles",
+    slug: "final-fantasy-tactics-the-ivalice-chronicles",
+    igdbSlug: "final-fantasy-tactics-the-ivalice-chronicles",
+    priceUsd: 49.99,
+    genres: ["Tactical RPG", "Turn-based Strategy", "JRPG"],
+    genreKey: "jrpg",
+    steamAppId: 1004640,
+  },
+  {
+    // 2016 base game (IGDB 10919), not the Collection bundle, War of the Chosen, or Enemy Unknown
+    title: "XCOM 2",
+    slug: "xcom-2",
+    igdbSlug: "xcom-2",
+    priceUsd: 59.99,
+    genres: ["Turn-based Strategy", "Tactical"],
+    genreKey: "pure-gameplay",
+    steamAppId: 268500,
+  },
+  // Puzzle/adventure (added for the rating-reliability test set; ingested only, not yet scored)
+  {
+    // 2024 base game (IGDB 206806), not the Sayonara Wild Hearts + Lorelei bundle or other Simogo games
+    title: "Lorelei and the Laser Eyes",
+    slug: "lorelei-and-the-laser-eyes",
+    igdbSlug: "lorelei-and-the-laser-eyes",
+    opencriticId: 16721,
+    priceUsd: 24.99,
+    genres: ["Puzzle", "Adventure", "Indie"],
+    genreKey: "puzzle-narrative",
+    steamAppId: 2008920,
+  },
 ];

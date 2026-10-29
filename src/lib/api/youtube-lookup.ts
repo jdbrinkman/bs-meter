@@ -41,7 +41,7 @@ export type LookupResult = { videos: FoundVideo[]; searchesUsed: number; notes: 
 const STOPWORDS = new Set(["the", "of", "a", "an", "and", "in", "to"]);
 // Words that name an edition rather than a different game. Optional in video titles.
 const EDITION_WORDS = new Set(["remastered", "remaster", "definitive", "edition", "enhanced", "complete", "goty", "director", "cut", "legendary", "hd"]);
-const ROMAN: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10" };
+const ROMAN: Record<string, string> = { ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10", xi: "11", xii: "12", xiii: "13", xiv: "14", xv: "15", xvi: "16", xvii: "17", xviii: "18", xix: "19", xx: "20" };
 
 const REVIEW_WORDS = /\b(review|verdict|worth|impressions?|after 100|tech review)\b/i;
 const REJECT_WORDS =
@@ -102,6 +102,19 @@ const TECH_WORDS = /\b(tech review|face-?off|performance|analysis|pc|ps5|ps4|xbo
 const REJECT_WORDS_TECH =
   /\b(trailer|walkthrough|guide|tier list|top \d+|best|worst|ranking|ranked|unboxing|reaction|livestream|podcast|news|patch notes|dlc|expansion|montage|speedrun|funny|moments|explained|ending|lore|preview|hands-on|first look|mods?|direct|weekly)\b/i;
 
+/** Drops quoted text ("...", “...”, '...') so a quoted press tagline like 'One of the best puzzle games of 2024' is not read as a "best of" list. */
+export function stripQuoted(title: string): string {
+  return title
+    .replace(/"[^"]*"/g, " ")
+    .replace(/“[^”]*”/g, " ")
+    .replace(/(^|\s)['‘][^'’]{3,}['’](?=\s|$|[:,.?!)])/g, " ");
+}
+
+/** True if the title looks like a list, trailer, guide, or other non-review video. Quoted text is ignored. */
+export function isRejectedTitle(title: string, tech = false): boolean {
+  return (tech ? REJECT_WORDS_TECH : REJECT_WORDS).test(stripQuoted(title));
+}
+
 function reviewScore(title: string): number {
   let s = 0;
   if (/\breview\b/i.test(title)) s += 3;
@@ -152,7 +165,7 @@ export async function findReviewVideos(gameTitle: string, opts: LookupOptions): 
       if (!trusted.has(channelId) || seenVideos.has(it.id.videoId)) continue;
       if (!titleMatchesGame(title, gameTitle, opts.siblingTitles)) continue;
       const tech = techChannels.has(channelId);
-      if ((tech ? REJECT_WORDS_TECH : REJECT_WORDS).test(title)) continue;
+      if (isRejectedTitle(title, tech)) continue;
       if (!REVIEW_WORDS.test(title) && !(tech && TECH_WORDS.test(title))) continue;
       candidates.push({ channelId, videoId: it.id.videoId, title, publishedAt: it.snippet.publishedAt, method });
     }

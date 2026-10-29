@@ -1,4 +1,6 @@
 // Scoring v2: the AI rates 12 measures (6 juice, 6 squeeze) 0-5 against written rubrics.
+// The target rubric (1-5 scale, new squeeze measures) is in docs/scoring-rubric.md; only the juice measures
+// and genre weights have been moved to it so far.
 // Everything below (index math, verdict rules) is deterministic and can be re-tuned
 // from stored ratings without re-running the AI.
 
@@ -18,32 +20,32 @@ export const JUICE: MeasureDef[] = [
   {
     key: "story", side: "juice", label: "Story",
     summary: "Characters and narrative that pull you forward.",
-    rubric: "0 = incoherent or actively bad, 3 = competent, 5 = memorable and drives you to keep playing. Environmental/cryptic storytelling counts fully. Mark NOT APPLICABLE if the game has no story intent (competitive shooters, abstract puzzles).",
+    rubric: "Plot, characters, writing, emotional impact, and the writing quality of side quests. Environmental and cryptic storytelling counts fully. Narrative rhythm belongs to Pacing and voice performance to Presentation. Lowest = incoherent or actively bad, 3 = competent, 5 = memorable and drives you to keep playing. Mark NOT APPLICABLE if the game has no story intent (competitive shooters, abstract puzzles).",
   },
   {
     key: "gameplay", side: "juice", label: "Gameplay",
     summary: "How good it feels to play, minute to minute.",
-    rubric: "Core loop, combat, movement, controls, mechanics. 0 = frustrating to play, 3 = solid, 5 = feels great and stays great. Applies to every genre.",
+    rubric: "Core loop, combat, movement, controls, and depth of systems. Difficulty fairness belongs to Challenge, enemy and encounter variety to Repetition, and bugs to Broken: rate as if the game works. Lowest = frustrating to play, 3 = solid, 5 = feels great and stays great. Applies to every genre.",
   },
   {
     key: "world", side: "juice", label: "World",
-    summary: "Atmosphere, art, sound, and exploration that pays off.",
-    rubric: "0 = bland or incoherent, 3 = pleasant, 5 = a place you want to be in and exploring is rewarded. For abstract or menu-driven games, rate presentation and cohesion.",
+    summary: "Places worth being in: level design and exploration that pays off.",
+    rubric: "Level and world design, exploration that pays off, environmental storytelling, coherence of place. Art and audio craft belong to Presentation and filler density to Padding. Lowest = bland or incoherent, 3 = pleasant, 5 = a place you want to be in, and exploring is rewarded. Mark NOT APPLICABLE for abstract or menu-driven games with no spaces.",
   },
   {
-    key: "content", side: "juice", label: "Content",
-    summary: "Quality and variety of everything between the main beats.",
-    rubric: "Side quests, optional areas, levels, enemy and encounter variety. 0 = thin or generic, 3 = decent variety, 5 = every piece feels authored. Judge quality here, not quantity (quantity problems go under Padding).",
+    key: "presentation", side: "juice", label: "Presentation",
+    summary: "Art direction, animation, sound, music, and voice acting.",
+    rubric: "Art direction, animation, sound design, music, voice acting. Performance and stability problems belong to Broken and level layout to World. Lowest = dated, ugly, or grating, 3 = competent, 5 = distinctive and polished.",
   },
   {
     key: "challenge", side: "juice", label: "Challenge",
-    summary: "Fair difficulty, depth, and room to master it.",
-    rubric: "Bosses, encounters, decisions, skill ceiling. 0 = trivial or unfair, 3 = engaging, 5 = deep, fair, memorable. For games that are easy by design, rate the depth of decisions instead. Difficulty itself is not penalized.",
+    summary: "Fair, well-designed difficulty and room to master it.",
+    rubric: "Quality of difficulty: fair, readable, rewards mastery. Cheap, arbitrary, or badly balanced difficulty lowers it. For games that are easy by design, rate the depth of decisions instead. The difficulty level itself is never penalized. Lowest = trivial or unfair, 3 = engaging, 5 = deep, fair, memorable.",
   },
   {
-    key: "replay", side: "juice", label: "Staying power",
-    summary: "Reasons to keep playing or come back.",
-    rubric: "New builds, runs, NG+, multiplayer, mods, post-game. 0 = one and done with nothing worth returning for, 3 = some reasons, 5 = strong reasons to return. A short, complete story game can rate 2-3 without that being a flaw.",
+    key: "staying", side: "juice", label: "Staying power",
+    summary: "Reasons to keep playing after one pass.",
+    rubric: "New builds, runs, NG+, multiplayer, mods, post-game. Mark NOT APPLICABLE unless the game's design relies on repeat play (roguelikes, multiplayer, live service, sandbox); a complete-by-design game is skipped, not scored low. Lowest = nothing worth returning for, 3 = some reasons, 5 = strong reasons to return.",
   },
 ];
 
@@ -93,13 +95,15 @@ export type Rating = {
 
 export type Ratings = Record<string, Rating>;
 
-type JuiceWeights = Record<"story" | "gameplay" | "world" | "content" | "challenge" | "replay", number>;
-const w = (story: number, gameplay: number, world: number, content: number, challenge: number, replay: number): JuiceWeights =>
-  ({ story, gameplay, world, content, challenge, replay });
+type JuiceWeights = Record<"story" | "gameplay" | "world" | "presentation" | "challenge" | "staying", number>;
+const w = (story: number, gameplay: number, world: number, presentation: number, challenge: number, staying: number): JuiceWeights =>
+  ({ story, gameplay, world, presentation, challenge, staying });
 
-// How much each juice measure matters per genre profile (keys match genre-weights.ts).
+// How much each juice measure matters per genre profile (keys match GENRE_RULES in config/genre-weights.ts;
+// games are assigned a profile in config/game-profiles.ts). Hand-set starting points, not validated:
+// see docs/genre-profiles.md. Order: story, gameplay, world, presentation, challenge, staying power.
 export const JUICE_WEIGHTS: Record<string, JuiceWeights> = {
-  "narrative-rpg": w(3, 2, 1.5, 1.5, 0.5, 0.5),
+  "narrative-rpg": w(3, 2, 1.5, 1, 0.5, 0.5),
   soulslike: w(0.5, 3, 2, 1, 3, 1),
   "soulslike-blended": w(1.5, 3, 2, 1, 2.5, 1),
   "action-adventure": w(2, 3, 2, 1, 1, 0.5),
@@ -108,11 +112,12 @@ export const JUICE_WEIGHTS: Record<string, JuiceWeights> = {
   "platformer-metroidvania": w(0.5, 3, 2, 1.5, 1.5, 1),
   "puzzle-narrative": w(2, 2.5, 2, 1, 1.5, 0.5),
   "pure-gameplay": w(0, 3, 1, 1, 1.5, 2),
-  "narrative-open-world": w(2.5, 2, 2, 2, 0.5, 0.5),
-  "action-horror": w(1.5, 3, 2.5, 0.5, 1, 0.5),
-  crpg: w(2.5, 2, 1.5, 2, 1, 1),
-  "pvpve-extraction": w(0, 3, 1.5, 1, 2, 3),
-  default: w(1.5, 3, 2, 1.5, 1, 1),
+  "narrative-open-world": w(3, 2, 2, 1.5, 0.5, 0.5),
+  "action-horror": w(1.5, 3, 2, 1.5, 1, 0.5),
+  crpg: w(3, 2, 1.5, 0.5, 1, 1),
+  "multiplayer-live": w(0, 3, 1, 1, 2, 3),
+  "turn-based-tactics": w(1.5, 3, 1, 1, 2.5, 1.5),
+  default: w(1.5, 3, 2, 1, 1, 1),
 };
 
 // BS index: the worst squeeze measures dominate, so one maxed-out problem can't be averaged away.

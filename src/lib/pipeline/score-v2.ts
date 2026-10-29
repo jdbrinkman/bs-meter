@@ -1,7 +1,7 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { analyzeGameV2 } from "@/lib/ai/v2/analyze";
 import { GEMINI_MODEL } from "@/lib/ai/gemini";
-import { mapIGDBGenreToKey } from "@/config/genre-weights";
+import { resolveGenreKey } from "@/config/game-profiles";
 import { computeBsIndex, computeJuiceIndex, deriveVerdictV2 } from "@/lib/scoring/v2";
 import type { Ratings } from "@/lib/scoring/v2";
 import type { Game, ReviewSource } from "@/lib/types";
@@ -26,7 +26,7 @@ export async function scoreGameV2(gameId: string) {
       .order("published_at", { ascending: true })
       .limit(40);
     const g = game as Game;
-    const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
+    const genreKey = resolveGenreKey(g);
 
     const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey, critics || []);
     const ratings = analysis.ratings;
@@ -78,7 +78,7 @@ export async function recomputeAllV2() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("scores")
-    .select("game_id, ratings, games (title, genres, developer, price_usd, current_price_usd, release_date)")
+    .select("game_id, ratings, games (slug, title, genres, developer, price_usd, current_price_usd, release_date)")
     .not("ratings", "is", null);
   if (error) throw new Error(error.message);
 
@@ -86,7 +86,7 @@ export async function recomputeAllV2() {
   for (const row of data || []) {
     const g = (Array.isArray(row.games) ? row.games[0] : row.games) as unknown as Game;
     const ratings = row.ratings as Ratings;
-    const genreKey = mapIGDBGenreToKey(g.genres || [], g.developer, g.title);
+    const genreKey = resolveGenreKey(g);
     const juice = computeJuiceIndex(ratings, genreKey);
     const bs = computeBsIndex(ratings);
     const verdict = deriveVerdictV2({

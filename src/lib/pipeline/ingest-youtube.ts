@@ -3,6 +3,7 @@ import { fetchTranscriptRobust } from "@/lib/api/youtube";
 import { findReviewVideos } from "@/lib/api/youtube-lookup";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
 import { SEED_GAMES } from "@/config/seed-games";
+import { KNOWN_EXPANSIONS } from "@/config/known-expansions";
 import { logIngest } from "./ingest-log";
 
 /** Finds trusted review videos for a game, fetches transcripts, and upserts them. Logs every step. */
@@ -13,7 +14,7 @@ export async function ingestYouTubeSources(gameId: string, title: string) {
       apiKey: process.env.YOUTUBE_API_KEY!,
       referer: process.env.NEXT_PUBLIC_SITE_URL,
       reviewers: TRUSTED_REVIEWERS,
-      siblingTitles: SEED_GAMES.map((g) => g.title),
+      siblingTitles: [...SEED_GAMES.map((g) => g.title), ...KNOWN_EXPANSIONS],
     });
     await logIngest(supabase, gameId, "youtube:search", lookup.videos.length ? "ok" : "empty",
       `${lookup.videos.length} trusted review videos, ${lookup.searchesUsed} searches${lookup.notes.length ? "; " + lookup.notes.join("; ") : ""}`);
