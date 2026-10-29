@@ -34,9 +34,7 @@ export default async function GameDetailPage({ params }: { params: PageParams })
 
   const meta = [
     game.genres?.[0],
-    game.current_price_usd != null && game.current_price_usd !== Number(game.price_usd)
-      ? `$${game.current_price_usd}${game.price_usd && game.current_price_usd < Number(game.price_usd) ? ` (was $${game.price_usd})` : ""}`
-      : game.price_usd ? `$${game.price_usd}` : null,
+    priceLabel(game),
     game.release_date ? new Date(game.release_date).getFullYear() : null,
   ].filter(Boolean);
 
@@ -166,6 +164,22 @@ function SourceGroup({ label, items }: { label: string; items: { key: string; te
       </div>
     </div>
   );
+}
+
+type PriceGame = {
+  price_usd: number | string | null;
+  current_price_usd: number | string | null;
+  price_source: string | null;
+  price_history: { historyLow?: { all: number | null } } | null;
+};
+
+function priceLabel(g: PriceGame): string | null {
+  const list = g.price_usd != null ? Number(g.price_usd) : null;
+  const now = g.current_price_usd != null ? Number(g.current_price_usd) : null;
+  const low = g.price_history?.historyLow?.all ?? null;
+  if (now == null) return list != null ? `$${list} list price` : null;
+  const main = now === 0 ? "Free" : list != null && now < list ? `$${now} (was $${list})` : `$${now}`;
+  return low != null && now > 0 && low < now * 0.8 ? `${main}, all-time low $${low}` : main;
 }
 
 function IndexCard({ label, value, color }: { label: string; value: number; color: string }) {

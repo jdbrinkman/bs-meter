@@ -99,6 +99,13 @@ async function checkDatabase() {
   const stale = steamGames.filter((g) => g.current_price_usd != null && g.price_usd != null && Math.abs(Number(g.current_price_usd) - Number(g.price_usd)) / Math.max(Number(g.price_usd), 1) > 0.2).map((g) => `${g.title} (seed $${g.price_usd}, now $${g.current_price_usd})`);
   add(stale.length ? "WARN" : "PASS", "seed-price-stale", stale.length ? `${stale.length} hand-typed seed prices are off by more than 20%: ${stale.join("; ")}` : "seed prices are within 20% of Steam");
 
+  // price provenance and cross-source agreement
+  const { data: pg } = await db.from("games").select("title,current_price_usd,price_source,price_history,price_checked_at");
+  const mism = pg.filter((g) => g.price_history?.steamPrice != null && g.current_price_usd != null && Math.abs(g.price_history.steamPrice - Number(g.current_price_usd)) > 1).map((g) => `${g.title} (Steam API $${g.current_price_usd}, ITAD Steam $${g.price_history.steamPrice})`);
+  add(mism.length ? "FAIL" : "PASS", "price-agreement", mism.length ? `${mism.length} games where ITAD's Steam price disagrees with the Steam API: ${mism.join("; ")}` : "ITAD and the Steam API agree on every Steam price");
+  const oldPrice = pg.filter((g) => g.price_checked_at && Date.now() - new Date(g.price_checked_at).getTime() > 7 * 86400000).map((g) => g.title);
+  add(oldPrice.length ? "WARN" : "PASS", "price-freshness", oldPrice.length ? `${oldPrice.length} games have price data older than 7 days` : "price history is fresh");
+
   // missing core facts
   const noHours = games.filter((g) => !g.main_story_hours).map((g) => g.title);
   add(noHours.length ? "WARN" : "PASS", "time-to-beat", noHours.length ? `${noHours.length} games have no time-to-beat hours` : "all games have hours");

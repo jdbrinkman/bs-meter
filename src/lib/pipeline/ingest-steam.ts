@@ -26,7 +26,7 @@ export async function ingestSteam(gameId: string, title: string, options: { revi
     const price = f.data.isFree ? 0 : f.data.priceFinal;
     const { error } = await supabase
       .from("games")
-      .update({ steam_facts: facts, steam_facts_checked_at: new Date().toISOString(), ...(price != null ? { current_price_usd: price } : {}) })
+      .update({ steam_facts: facts, steam_facts_checked_at: new Date().toISOString(), ...(price != null ? { current_price_usd: price, price_source: "steam" } : {}) })
       .eq("id", gameId);
     factsOk = !error;
     await logIngest(supabase, gameId, "steam:store", error ? "failed" : "ok",
