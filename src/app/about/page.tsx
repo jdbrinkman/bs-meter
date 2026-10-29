@@ -86,7 +86,7 @@ export default function AboutPage() {
           </li>
           <li>
             <strong className="text-on-surface">Store facts.</strong> Current Steam price, in-app purchases, DLC and achievement
-            rates, plus price history from IsThereAnyDeal. Playtimes are entered by hand. Release data comes from IGDB.
+            rates, plus price history from IsThereAnyDeal. Time to beat uses HowLongToBeat figures entered by hand, with IGDB community data filling the gaps. Release data comes from IGDB.
           </li>
         </ul>
       </Section>

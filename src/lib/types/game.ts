@@ -31,6 +31,7 @@ export type Game = {
   main_story_hours: number | null;
   main_extras_hours: number | null;
   completionist_hours: number | null;
+  hours_source: "seed" | "igdb" | null;
 
   // Price
   price_usd: number | null;
