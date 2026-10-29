@@ -60,7 +60,7 @@ export function buildPromptV2(
 - ${game.title} (${game.release_date ? new Date(game.release_date).getFullYear() : "Unknown"})
 - Genre profile: ${genre.displayName}
 - Price today: $${game.current_price_usd ?? game.price_usd ?? "Unknown"}${game.current_price_usd != null && game.price_usd != null && game.current_price_usd < game.price_usd ? ` (list price $${game.price_usd})` : ""}
-- Time to beat (${game.hours_source === "igdb" ? "IGDB community data" : "HowLongToBeat, entered by hand"}): Main ${game.main_story_hours ?? "?"}h | Main+Extras ${game.main_extras_hours ?? "?"}h | Completionist ${game.completionist_hours ?? "?"}h
+- Time to beat (${game.hours_source === "igdb" ? "IGDB community data" : game.hours_source === "seed" ? "HowLongToBeat, entered by hand" : "HowLongToBeat"}): Main ${game.main_story_hours ?? "?"}h | Main+Extras ${game.main_extras_hours ?? "?"}h | Completionist ${game.completionist_hours ?? "?"}h
 ${steamFactsLine(game)}- Genre notes: ${genre.aiGuidance}
 
 ## REVIEWER TRANSCRIPTS (${yt.length})

@@ -108,8 +108,8 @@ async function checkDatabase() {
 
   // hand-entered hours vs IGDB community data
   const { data: hg } = await db.from("games").select("title,main_extras_hours,time_to_beat,hours_source");
-  const hoursOff = hg.filter((g) => g.hours_source === "seed" && g.time_to_beat?.usable && g.main_extras_hours && (g.time_to_beat.normalHours / g.main_extras_hours > 1.6 || g.time_to_beat.normalHours / g.main_extras_hours < 0.6)).map((g) => `${g.title} (typed ${g.main_extras_hours}h, IGDB ${g.time_to_beat.normalHours}h)`);
-  add(hoursOff.length ? "WARN" : "PASS", "hours-agreement", hoursOff.length ? `${hoursOff.length} hand-entered hours disagree with IGDB by more than 1.6x: ${hoursOff.join("; ")}` : "hand-entered hours agree with IGDB where both exist");
+  const hoursOff = hg.filter((g) => g.hours_source !== "igdb" && g.time_to_beat?.usable && g.main_extras_hours && (g.time_to_beat.normalHours / g.main_extras_hours > 1.6 || g.time_to_beat.normalHours / g.main_extras_hours < 0.6)).map((g) => `${g.title} (${g.hours_source} ${g.main_extras_hours}h, IGDB ${g.time_to_beat.normalHours}h)`);
+  add(hoursOff.length ? "WARN" : "PASS", "hours-agreement", hoursOff.length ? `${hoursOff.length} hours disagree with IGDB by more than 1.6x: ${hoursOff.join("; ")}` : "hours agree with IGDB where both exist");
 
   // missing core facts
   const noHours = games.filter((g) => !g.main_story_hours).map((g) => g.title);
