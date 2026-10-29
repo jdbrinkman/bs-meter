@@ -106,6 +106,11 @@ async function checkDatabase() {
   const oldPrice = pg.filter((g) => g.price_checked_at && Date.now() - new Date(g.price_checked_at).getTime() > 7 * 86400000).map((g) => g.title);
   add(oldPrice.length ? "WARN" : "PASS", "price-freshness", oldPrice.length ? `${oldPrice.length} games have price data older than 7 days` : "price history is fresh");
 
+  // hand-entered hours vs IGDB community data
+  const { data: hg } = await db.from("games").select("title,main_extras_hours,time_to_beat,hours_source");
+  const hoursOff = hg.filter((g) => g.hours_source === "seed" && g.time_to_beat?.usable && g.main_extras_hours && (g.time_to_beat.normalHours / g.main_extras_hours > 1.6 || g.time_to_beat.normalHours / g.main_extras_hours < 0.6)).map((g) => `${g.title} (typed ${g.main_extras_hours}h, IGDB ${g.time_to_beat.normalHours}h)`);
+  add(hoursOff.length ? "WARN" : "PASS", "hours-agreement", hoursOff.length ? `${hoursOff.length} hand-entered hours disagree with IGDB by more than 1.6x: ${hoursOff.join("; ")}` : "hand-entered hours agree with IGDB where both exist");
+
   // missing core facts
   const noHours = games.filter((g) => !g.main_story_hours).map((g) => g.title);
   add(noHours.length ? "WARN" : "PASS", "time-to-beat", noHours.length ? `${noHours.length} games have no time-to-beat hours` : "all games have hours");

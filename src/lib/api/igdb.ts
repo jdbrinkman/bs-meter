@@ -119,3 +119,50 @@ export function formatCoverUrl(url: string | undefined): string | null {
   // IGDB returns //images.igdb.com/... — we want https and larger size
   return url.replace("t_thumb", "t_cover_big").replace("//", "https://");
 }
+
+// ---- Time to beat (IGDB community submissions, seconds) -----------------------------------------
+export type TimeToBeat = {
+  /** Hours for a rushed playthrough, a normal one, and completing everything. null when nobody submitted it. */
+  fastHours: number | null;
+  normalHours: number | null;
+  completeHours: number | null;
+  /** Number of submissions behind the numbers. */
+  count: number;
+};
+
+type RawTimeToBeat = { game_id: number; hastily?: number; normally?: number; completely?: number; count?: number };
+
+const toHours = (seconds?: number) => (seconds ? Math.round((seconds / 3600) * 10) / 10 : null);
+
+export function parseTimeToBeat(raw: RawTimeToBeat): TimeToBeat {
+  return { fastHours: toHours(raw.hastily), normalHours: toHours(raw.normally), completeHours: toHours(raw.completely), count: raw.count ?? 0 };
+}
+
+/**
+ * Decides whether IGDB's numbers are safe to show. Rejects thin samples and impossible data
+ * (a "complete" run shorter than a "normal" one), and drops a completion time that is a 6x+ outlier
+ * (IGDB has 5,000-hour entries) while keeping the fast and normal times. Returns the cleaned numbers.
+ */
+export function usableTimeToBeat(t: TimeToBeat): { ok: boolean; reason: string; cleaned: TimeToBeat } {
+  const reject = (reason: string) => ({ ok: false, reason, cleaned: t });
+  if (t.count < 3) return reject(`only ${t.count} submission${t.count === 1 ? "" : "s"}`);
+  if (t.normalHours == null) return reject("no normal-playthrough time");
+  if (t.fastHours != null && t.fastHours > t.normalHours) return reject("fast run longer than normal run");
+  if (t.completeHours != null && t.completeHours < t.normalHours) return reject("complete run shorter than normal run");
+  if (t.completeHours != null && t.completeHours > t.normalHours * 6) {
+    return { ok: true, reason: "completion time dropped (over 6x normal)", cleaned: { ...t, completeHours: null } };
+  }
+  return { ok: true, reason: "ok", cleaned: t };
+}
+
+export async function fetchTimeToBeat(igdbId: number): Promise<TimeToBeat | null> {
+  const token = await getAccessToken();
+  const res = await fetch("https://api.igdb.com/v4/game_time_to_beats", {
+    method: "POST",
+    headers: { "Client-ID": process.env.IGDB_CLIENT_ID!, Authorization: `Bearer ${token}`, "Content-Type": "text/plain" },
+    body: `fields game_id,hastily,normally,completely,count; where game_id = ${igdbId}; limit 1;`,
+  });
+  if (!res.ok) throw new Error(`IGDB time-to-beat failed: ${res.status}`);
+  const rows = (await res.json()) as RawTimeToBeat[];
+  return rows[0] ? parseTimeToBeat(rows[0]) : null;
+}

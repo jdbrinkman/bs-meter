@@ -1,11 +1,11 @@
 import { createAdminClient } from "@/lib/supabase/admin";
 import { urlLoads } from "@/lib/api/cover";
-import { searchHLTB } from "@/lib/api/hltb";
 import { searchOpenCritic, getOpenCriticGame } from "@/lib/api/opencritic";
 import { ingestYouTubeSources } from "./ingest-youtube";
 import { refreshMetadata } from "./ingest-metadata";
 import { ingestCritics } from "./ingest-critics";
 import { ingestSteam } from "./ingest-steam";
+import { ingestTimeToBeat } from "./ingest-time";
 import { searchRedditSentiment } from "@/lib/api/reddit";
 import { SEED_GAMES } from "@/config/seed-games";
 
@@ -30,34 +30,19 @@ export async function ingestGameData(
     // 1. IGDB metadata (exact slug when seeded; otherwise a verified title match)
     await refreshMetadata(gameId, title, seedGame);
 
-    // 2. HLTB time data (try scraper, then fall back to seed data)
-    const hltbData = await searchHLTB(title);
-    if (hltbData) {
+    // 2. Time to beat: hand-entered hours from the seed list win; IGDB community data fills the gaps
+    if (seedGame?.hltb) {
       await supabase
         .from("games")
         .update({
-          hltb_id: parseInt(hltbData.id),
-          main_story_hours: hltbData.gameplayMain || null,
-          main_extras_hours: hltbData.gameplayMainExtra || null,
-          completionist_hours: hltbData.gameplayCompletionist || null,
+          main_story_hours: seedGame.hltb.mainStory,
+          main_extras_hours: seedGame.hltb.mainExtras,
+          completionist_hours: seedGame.hltb.completionist,
+          hours_source: "seed",
         })
         .eq("id", gameId);
-    } else {
-      // Fallback: use manual HLTB data from seed config
-      if (seedGame?.hltb) {
-        console.log(`Using seed HLTB data for ${title}`);
-        await supabase
-          .from("games")
-          .update({
-            main_story_hours: seedGame.hltb.mainStory,
-            main_extras_hours: seedGame.hltb.mainExtras,
-            completionist_hours: seedGame.hltb.completionist,
-          })
-          .eq("id", gameId);
-      } else {
-        console.warn(`No HLTB data available for ${title}`);
-      }
     }
+    await ingestTimeToBeat(gameId);
 
     // 3. OpenCritic
     try {
