@@ -111,10 +111,10 @@ export function GameList({ games, sort, sortHref }: { games: ListedGame[]; sort:
                 </td>
                 <td className="px-2 py-2"><VerdictCell game={g} size={14} /></td>
                 <td className="px-2 py-2 font-label text-sm tabular-nums text-on-surface">
-                  {juice == null ? "—" : (<>~{juice}<Bar value={juice} color={JUICE_COLOR} /></>)}
+                  {juice == null ? "—" : (<>{juice}<Bar value={juice} color={JUICE_COLOR} /></>)}
                 </td>
                 <td className="px-2 py-2 font-label text-sm tabular-nums" style={{ color: bs == null ? undefined : bsColor(bs) }}>
-                  {bs == null ? "—" : (<>~{bs}<Bar value={bs} color={bsColor(bs)} /></>)}
+                  {bs == null ? "—" : (<>{bs}<Bar value={bs} color={bsColor(bs)} /></>)}
                 </td>
                 <td className="px-2 py-2 font-label text-sm text-on-surface-variant">{fmtHours(g.main_story_hours)}</td>
                 <td className="px-2 py-2 font-label text-sm text-on-surface-variant">{fmtPrice(g.price)}</td>
@@ -139,7 +139,7 @@ export function GameList({ games, sort, sortHref }: { games: ListedGame[]; sort:
                   <VerdictCell game={g} size={12} />
                 </div>
                 <p className="mt-0.5 font-label text-xs tabular-nums text-on-surface-variant">
-                  Juice {juice == null ? "—" : `~${juice}`} · BS {bs == null ? "—" : `~${bs}`} · {fmtHours(g.main_story_hours)} · {fmtPrice(g.price)}
+                  Juice {juice ?? "—"} · BS {bs ?? "—"} · {fmtHours(g.main_story_hours)} · {fmtPrice(g.price)}
                 </p>
               </div>
             </li>

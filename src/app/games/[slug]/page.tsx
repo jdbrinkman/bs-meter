@@ -194,7 +194,6 @@ function IndexCard({ label, value, color }: { label: string; value: number; colo
     <div className="rounded-xl bg-surface-container p-4">
       <p className="font-label text-[11px] text-on-surface-variant">{label}</p>
       <p className="mt-1 font-headline text-3xl font-black text-on-surface">
-        <span className="text-sm font-medium text-on-surface-variant">about </span>
         {shown}
         <span className="text-sm font-medium text-on-surface-variant"> / 100</span>
       </p>

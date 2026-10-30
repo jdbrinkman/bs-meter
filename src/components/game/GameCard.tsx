@@ -38,7 +38,7 @@ export function GameCard({ slug, title, coverUrl, verdict, bsIndex }: GameCardPr
             </span>
             {bsIndex != null && (
               <span className="font-label text-[10px] tabular-nums" style={{ color: bsColor(bsIndex) }}>
-                BS ~{displayIndex(bsIndex)}
+                BS {displayIndex(bsIndex)}
               </span>
             )}
           </div>
