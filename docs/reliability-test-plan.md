@@ -1,6 +1,6 @@
 # Reliability test plan: AI inter-rater reliability (IRR)
 
-Status: **plan, not yet run.** Rubric: [scoring-rubric.md](./scoring-rubric.md). Candidate models: `gemini-3.5-flash-lite` and `gemini-3.8-flash`.
+Status: **run 2026-10-28/29 with a reduced Phase 2/3/5 (spend ladder); results in [reliability-results.md](./reliability-results.md).** Rubric: [scoring-rubric.md](./scoring-rubric.md). Candidate models: `gemini-3.5-flash-lite` and `gemini-3.8-flash`.
 
 ## Goal
 

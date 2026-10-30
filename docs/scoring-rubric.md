@@ -1,6 +1,6 @@
 # Scoring rubric (v3 proposal)
 
-Status: **agreed in design; partly implemented.** Done in `src/lib/scoring/v2.ts`: the six Juice measures and the genre weights. Not yet: the 1-5 scale, the new squeeze measures (Pacing added, Monetization removed), the prompt, and the schema. Next: implement, turn on Gemini billing, run the reliability tests below, then re-score all 35.
+Status: **implemented (2026-10-28), not yet validated.** `src/lib/scoring/v2.ts` (measures, 1-5 math, empty values), `src/lib/ai/v2/{schema,prompt,analyze,run}.ts` (staged pipeline) and the UI follow this document. Next: run the reliability tests below, choose the model, then re-score all games.
 
 Rater: Gemini. Today `gemini-2.5-flash` (set in `src/lib/ai/gemini.ts`); `gemini-3.5-flash-lite` vs `gemini-3.8-flash` to be chosen by the reliability tests.
 
