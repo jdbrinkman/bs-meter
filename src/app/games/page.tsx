@@ -9,7 +9,7 @@ export default async function GamesPage({ searchParams }: { searchParams: Search
   return (
     <div className="mx-auto max-w-[1440px] px-8 py-12">
       <h1 className="mb-2 font-headline text-4xl font-black tracking-tighter text-on-surface">Browse Games</h1>
-      <GameBrowser basePath="/games" verdict={params.verdict as string | undefined} genre={params.genre as string | undefined} showCount />
+      <GameBrowser basePath="/games" params={params} showCount />
     </div>
   );
 }

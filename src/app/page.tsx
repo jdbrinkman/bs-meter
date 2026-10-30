@@ -19,7 +19,7 @@ export default async function HomePage({ searchParams }: { searchParams: SearchP
         </div>
       </section>
       <div className="mx-auto max-w-[1440px] px-8 py-12">
-        <GameBrowser basePath="/" verdict={params.verdict as string | undefined} genre={params.genre as string | undefined} />
+        <GameBrowser basePath="/" params={params} />
       </div>
     </div>
   );
