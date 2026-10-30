@@ -1,6 +1,10 @@
+import { cookies } from "next/headers";
 import { GameGrid } from "./GameGrid";
+import { GameList } from "./GameList";
+import { ViewToggle } from "./ViewToggle";
 import { FilterSelects, type SelectSpec } from "./FilterSelects";
 import { VERDICTS } from "@/lib/scoring/v2";
+import { VIEW_COOKIE, type ViewKey } from "@/lib/browse-view";
 import { GENRE_GROUPS, PLATFORM_GROUPS } from "@/config/browse-groups";
 import {
   SORTS,
@@ -20,6 +24,9 @@ type Params = { [key: string]: string | string[] | undefined };
 /** Verdict bar, dropdowns, applied-filter row and the grid. Shared by the home page and /games so they can never disagree. */
 export async function GameBrowser({ basePath, params, showCount = false }: { basePath: string; params: Params; showCount?: boolean }) {
   const state = parseBrowseState(params);
+  // The URL wins; otherwise the choice remembered in a cookie; otherwise the grid.
+  const remembered = (await cookies()).get(VIEW_COOKIE)?.value;
+  const view: ViewKey = state.view ?? (remembered === "list" ? "list" : "grid");
   const all = await loadListedGames();
   const games = sortGames(applyFilters(all, state), state.sort);
   const url = (patch: Partial<BrowseState>) => buildUrl(basePath, { ...state, ...patch });
@@ -64,21 +71,24 @@ export async function GameBrowser({ basePath, params, showCount = false }: { bas
 
   return (
     <>
-      <div className="mb-6">
-        <p className="mb-2 font-label text-[10px] font-semibold uppercase tracking-widest text-outline">Verdict</p>
-        <div className="inline-flex max-w-full flex-wrap gap-1 rounded-3xl border border-outline-variant p-1">
-          <VerdictSegment href={url({ verdict: undefined })} label="All" count={forVerdict.length} active={!state.verdict} />
-          {VERDICT_ORDER.map((v) => (
-            <VerdictSegment
-              key={v}
-              href={url({ verdict: v })}
-              label={VERDICTS[v].label}
-              color={VERDICTS[v].color}
-              count={forVerdict.filter((g) => g.scores?.verdict_v2 === v).length}
-              active={state.verdict === v}
-            />
-          ))}
+      <div className="mb-6 flex flex-wrap items-end justify-between gap-x-6 gap-y-4">
+        <div>
+          <p className="mb-2 font-label text-[10px] font-semibold uppercase tracking-widest text-outline">Verdict</p>
+          <div className="inline-flex max-w-full flex-wrap gap-1 rounded-3xl border border-outline-variant p-1">
+            <VerdictSegment href={url({ verdict: undefined })} label="All" count={forVerdict.length} active={!state.verdict} />
+            {VERDICT_ORDER.map((v) => (
+              <VerdictSegment
+                key={v}
+                href={url({ verdict: v })}
+                label={VERDICTS[v].label}
+                color={VERDICTS[v].color}
+                count={forVerdict.filter((g) => g.scores?.verdict_v2 === v).length}
+                active={state.verdict === v}
+              />
+            ))}
+          </div>
         </div>
+        <ViewToggle current={view} hrefs={{ grid: url({ view: "grid" }), list: url({ view: "list" }) }} />
       </div>
 
       <FilterSelects selects={selects} />
@@ -107,7 +117,7 @@ export async function GameBrowser({ basePath, params, showCount = false }: { bas
         )}
       </div>
 
-      <GameGrid games={games} />
+      {view === "list" ? <GameList games={games} sort={state.sort} sortHref={(s) => url({ sort: s })} /> : <GameGrid games={games} />}
     </>
   );
 }
