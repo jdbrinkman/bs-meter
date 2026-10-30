@@ -1,13 +1,14 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import { analyzeGameV2 } from "@/lib/ai/v2/analyze";
-import { GEMINI_MODEL } from "@/lib/ai/gemini";
+import { analyzeGameV2, VERSIONS } from "@/lib/ai/v2/analyze";
+import { SCORING_CONFIG } from "@/lib/ai/gemini";
 import { resolveGenreKey } from "@/config/game-profiles";
-import { computeBsIndex, computeJuiceIndex, deriveVerdictV2 } from "@/lib/scoring/v2";
+import { computeBsIndex, computeJuiceIndex, deriveVerdictV2, isProvisional, ratingValue } from "@/lib/scoring/v2";
 import type { Ratings } from "@/lib/scoring/v2";
+import { dedupeSources, flagQuotes } from "@/lib/pipeline/evidence";
 import type { Game, ReviewSource } from "@/lib/types";
 
 /**
- * Rates a game with the stored sources and writes the v2 result. This is the only scoring path.
+ * Rates a game with the stored sources (two AI stages: extract issues, then rate) and writes the result. This is the only scoring path.
  * Does not fetch anything: run ingest first. Creates the score row if the game has none.
  */
 export async function scoreGameV2(gameId: string) {
@@ -28,15 +29,22 @@ export async function scoreGameV2(gameId: string) {
     const g = game as Game;
     const genreKey = resolveGenreKey(g);
 
-    const analysis = await analyzeGameV2(g, (sources || []) as ReviewSource[], genreKey, critics || []);
-    const ratings = analysis.ratings;
+    const usedSources = dedupeSources((sources || []) as ReviewSource[]);
+    const result = await analyzeGameV2(g, usedSources, genreKey, critics || []);
+    const issues = flagQuotes(result.observations, usedSources, critics || []);
+    const analysis = result.analysis;
+    const ratings = analysis.ratings as Ratings;
+    const attempts = [...result.extract, ...result.rate];
+    const okAttempts = attempts.filter((a) => a.kind === "ok");
+    const modelReturned = okAttempts[okAttempts.length - 1]?.modelReturned ?? SCORING_CONFIG.model;
+    const sum = (f: (a: (typeof attempts)[number]) => number) => attempts.reduce((n, a) => n + f(a), 0);
 
     const juice = computeJuiceIndex(ratings, genreKey);
     const bs = computeBsIndex(ratings);
     const verdict = deriveVerdictV2({
       juice,
       bs,
-      broken: ratings.broken.rating,
+      broken: ratingValue(ratings.broken),
       priceUsd: g.current_price_usd ?? g.price_usd,
       releaseDate: g.release_date,
     });
@@ -54,8 +62,22 @@ export async function scoreGameV2(gameId: string) {
           rough_launch: analysis.rough_launch,
           genre_rule_applied: genreKey,
           confidence: analysis.confidence,
-          model_version: GEMINI_MODEL,
-          scoring_version: 2,
+          model_version: modelReturned,
+          issues,
+          provisional: isProvisional(ratings),
+          run_meta: {
+            model_requested: SCORING_CONFIG.model,
+            model_returned: modelReturned,
+            thinking_level: SCORING_CONFIG.thinkingLevel,
+            versions: VERSIONS,
+            coverage: result.coverage,
+            unmatched_quotes: issues.filter((i) => i.quote_found === false).length,
+            input_tokens: sum((a) => a.inputTokens),
+            output_tokens: sum((a) => a.outputTokens),
+            thinking_tokens: sum((a) => a.thinkingTokens),
+            attempts: attempts.length,
+          },
+          scoring_version: 3,
           scored_at: new Date().toISOString(),
         },
         { onConflict: "game_id" }
@@ -78,12 +100,14 @@ export async function recomputeAllV2() {
   const supabase = createAdminClient();
   const { data, error } = await supabase
     .from("scores")
-    .select("game_id, ratings, games (slug, title, genres, developer, price_usd, current_price_usd, release_date)")
+    .select("game_id, ratings, scoring_version, games (slug, title, genres, developer, price_usd, current_price_usd, release_date)")
     .not("ratings", "is", null);
   if (error) throw new Error(error.message);
 
   const out = [];
   for (const row of data || []) {
+    // Ratings stored before rubric v3 use the old keys and 0-5 scale; recomputing them would corrupt the indexes.
+    if ((row.scoring_version ?? 0) < 3) continue;
     const g = (Array.isArray(row.games) ? row.games[0] : row.games) as unknown as Game;
     const ratings = row.ratings as Ratings;
     const genreKey = resolveGenreKey(g);
@@ -92,13 +116,13 @@ export async function recomputeAllV2() {
     const verdict = deriveVerdictV2({
       juice,
       bs,
-      broken: ratings.broken.rating,
+      broken: ratingValue(ratings.broken),
       priceUsd: g.current_price_usd ?? g.price_usd,
       releaseDate: g.release_date,
     });
     const { error: upErr } = await supabase
       .from("scores")
-      .update({ juice_index: juice, bs_index: bs, verdict_v2: verdict, genre_rule_applied: genreKey })
+      .update({ juice_index: juice, bs_index: bs, verdict_v2: verdict, genre_rule_applied: genreKey, provisional: isProvisional(ratings) })
       .eq("game_id", row.game_id);
     if (upErr) throw new Error(`${g.title}: ${upErr.message}`);
     out.push({ title: g.title, genreKey, juice, bs, verdict });

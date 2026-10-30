@@ -39,12 +39,15 @@ export default function AboutPage() {
 
       <Section title="The 12 measures">
         <p className="mb-4 text-sm text-on-surface-variant">
-          Each game is rated 0 to 5 on the same 12 measures, with a one-line reason for each. A juice measure that does not
-          exist in a kind of game (a story in a competitive shooter) is marked not applicable instead of scored.
+          Each game is rated 1 to 5 on the same 12 measures, with a one-line reason for each. On the BS side 1 means
+          negligible and 5 severe; on the juice side 1 means poor and 5 best in class. A juice measure that does not exist in
+          a kind of game (a story in a competitive shooter) is marked not applicable, and a measure our sources never
+          discuss is marked not discussed. Neither is counted as a good or a bad score. Every complaint is counted in exactly
+          one measure, so one problem cannot be punished twice.
         </p>
         <div className="grid gap-4 md:grid-cols-2">
           <MeasureList title="The juice" color="#22C55E" items={JUICE} />
-          <MeasureList title="The squeeze" color="#EF4444" items={SQUEEZE} />
+          <MeasureList title="The BS" color="#EF4444" items={SQUEEZE} />
         </div>
       </Section>
 
@@ -52,15 +55,17 @@ export default function AboutPage() {
         <ul className="space-y-3 text-sm text-on-surface-variant">
           <li>
             <strong className="text-on-surface">Ratings come from an AI reading the evidence.</strong> It rates the 12 measures
-            against written rubrics and cites a source for each. It does not choose the verdict.
+            against written rubrics, in two steps: first it lists the specific issues the sources raise, with quotes, then it
+            rates each measure from that list and cites it. It does not choose the verdict.
           </li>
           <li>
             <strong className="text-on-surface">Juice</strong> is a weighted average of the juice ratings. Weights depend on the
             kind of game: story counts for more in a narrative RPG, staying power for more in a roguelike.
           </li>
           <li>
-            <strong className="text-on-surface">BS</strong> is driven by the worst squeeze problems, so one severe problem cannot
-            be averaged away. The three worst measures count {BS_TOP_WEIGHTS.map((w) => `${w * 100}%`).join(", ")}.
+            <strong className="text-on-surface">BS</strong> is driven by the worst of its six measures, so one severe problem cannot
+            be averaged away. The three worst measures count {BS_TOP_WEIGHTS.map((w) => `${w * 100}%`).join(", ")}. A clean game
+            scores 0. Because five-level ratings are coarse, the numbers are shown to the nearest 5.
           </li>
           <li>
             <strong className="text-on-surface">The verdict</strong> is a fixed rule applied to those numbers and the price. The

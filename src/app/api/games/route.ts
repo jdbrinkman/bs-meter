@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { VERDICT_ORDER } from "@/lib/listing";
+import { isListed, VERDICT_ORDER } from "@/lib/listing";
 
 /**
  * GET /api/games?genre=&verdict=&sort=verdict|bs|juice|release_date&order=asc|desc&limit=&offset=
@@ -15,14 +15,15 @@ export async function GET(request: NextRequest) {
   const limit = Math.min(parseInt(searchParams.get("limit") || "50"), 100);
   const offset = parseInt(searchParams.get("offset") || "0");
 
-  let query = createAdminClient().from("games").select("*, scores (*)").eq("analysis_status", "complete");
+  let query = createAdminClient().from("games").select("*, scores (*)").in("analysis_status", ["complete", "pending"]);
   if (genre) query = query.contains("genres", [genre]);
 
   const { data, error } = await query;
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
 
-  type Row = { release_date: string | null; scores: { verdict_v2: string | null; bs_index: number | null; juice_index: number | null } | null };
+  type Row = { release_date: string | null; analysis_status: string | null; scores: { verdict_v2: string | null; bs_index: number | null; juice_index: number | null } | null };
   let games = (data || []).map((g) => ({ ...g, scores: Array.isArray(g.scores) ? g.scores[0] || null : g.scores })) as Row[];
+  games = games.filter((g) => isListed(g.analysis_status, g.scores?.verdict_v2));
   if (verdict) games = games.filter((g) => g.scores?.verdict_v2 === verdict);
 
   const key = (g: Row): number | string =>

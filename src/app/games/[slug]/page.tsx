@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { VerdictIcon } from "@/components/game/VerdictIcon";
-import { JUICE, SQUEEZE, VERDICTS, bsColor, type MeasureDef, type Ratings } from "@/lib/scoring/v2";
+import { JUICE, SQUEEZE, VERDICTS, bsColor, displayIndex, normalizeRating, type MeasureDef, type Ratings } from "@/lib/scoring/v2";
 
 type PageParams = Promise<{ slug: string }>;
 
@@ -90,8 +90,13 @@ export default async function GameDetailPage({ params }: { params: PageParams })
         {ratings && (
           <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
             <MeasureColumn title="The juice" color="#22C55E" defs={JUICE} ratings={ratings} />
-            <MeasureColumn title="The squeeze" color="#EF4444" defs={SQUEEZE} ratings={ratings} />
+            <MeasureColumn title="The BS" color="#EF4444" defs={SQUEEZE} ratings={ratings} />
           </div>
+        )}
+        {score?.provisional && (
+          <p className="mt-4 font-label text-xs text-on-surface-variant">
+            Provisional: the sources we read don&apos;t cover several measures, so treat these numbers as a rough guide.
+          </p>
         )}
         {score?.rough_launch && (
           <p className="mt-4 font-label text-xs text-on-surface-variant">
@@ -183,15 +188,18 @@ function priceLabel(g: PriceGame): string | null {
 }
 
 function IndexCard({ label, value, color }: { label: string; value: number; color: string }) {
+  // Five-level ratings do not support one-point precision, so show the nearest 5.
+  const shown = displayIndex(value) ?? value;
   return (
     <div className="rounded-xl bg-surface-container p-4">
       <p className="font-label text-[11px] text-on-surface-variant">{label}</p>
       <p className="mt-1 font-headline text-3xl font-black text-on-surface">
-        {value}
+        <span className="text-sm font-medium text-on-surface-variant">about </span>
+        {shown}
         <span className="text-sm font-medium text-on-surface-variant"> / 100</span>
       </p>
       <div className="mt-2 h-1.5 rounded-full bg-surface-container-highest">
-        <div className="h-full rounded-full" style={{ width: `${value}%`, backgroundColor: color }} />
+        <div className="h-full rounded-full" style={{ width: `${shown}%`, backgroundColor: color }} />
       </div>
     </div>
   );
@@ -205,25 +213,32 @@ function MeasureColumn({ title, color, defs, ratings }: { title: string; color: 
       </h2>
       <ul className="space-y-4">
         {defs.map((d) => {
-          const r = ratings[d.key];
+          const r = normalizeRating(ratings[d.key]);
           if (!r) return null;
-          const na = !r.applicable;
+          const value = r.status === "rated" ? r.rating : null;
+          const empty = value == null;
           return (
-            <li key={d.key} className={na ? "opacity-50" : ""}>
+            <li key={d.key} className={empty ? "opacity-50" : ""}>
               <div className="flex items-center justify-between">
                 <span className="font-headline text-base font-bold text-on-surface">{d.label}</span>
-                {na ? (
-                  <span className="font-label text-xs text-on-surface-variant">N/A</span>
+                {empty ? (
+                  <span className="font-label text-xs text-on-surface-variant">
+                    {r.status === "not_applicable" ? "N/A" : "Not discussed"}
+                  </span>
                 ) : (
-                  <span className="flex gap-1" role="img" aria-label={`${r.rating} of 5`}>
+                  <span className="flex gap-1" role="img" aria-label={`${value} of 5`}>
                     {[1, 2, 3, 4, 5].map((n) => (
-                      <span key={n} className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: n <= r.rating ? color : "#333" }} />
+                      <span key={n} className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: n <= value ? color : "#333" }} />
                     ))}
                   </span>
                 )}
               </div>
               <p className="mt-1 font-body text-sm text-on-surface-variant">
-                {na ? "Doesn't apply to this kind of game." : r.reason}
+                {r.status === "not_applicable"
+                  ? "Doesn't apply to this kind of game."
+                  : r.status === "not_discussed"
+                    ? "The sources we read don't cover this."
+                    : r.reason}
               </p>
             </li>
           );

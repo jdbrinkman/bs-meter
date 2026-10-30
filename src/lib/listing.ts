@@ -34,13 +34,22 @@ export type ListedGame = {
   } | null;
 };
 
+/**
+ * A game is listed once it is complete, or while it is still marked pending but already has a score
+ * (the old public site hides pending games, so a scored game can wait there until this design is live).
+ */
+export const isListed = (status: string | null, verdict: string | null | undefined) =>
+  status === "complete" || (status === "pending" && !!verdict);
+
 export async function loadListedGames(): Promise<ListedGame[]> {
   try {
     const { data } = await createAdminClient()
       .from("games")
-      .select("slug, title, cover_url, developer, genres, scores (verdict_v2, bs_index, juice_index, genre_rule_applied)")
-      .eq("analysis_status", "complete");
-    return (data || []).map((g) => ({ ...g, scores: Array.isArray(g.scores) ? g.scores[0] || null : g.scores })) as ListedGame[];
+      .select("slug, title, cover_url, developer, genres, analysis_status, scores (verdict_v2, bs_index, juice_index, genre_rule_applied)")
+      .in("analysis_status", ["complete", "pending"]);
+    return (data || [])
+      .map((g) => ({ ...g, scores: Array.isArray(g.scores) ? g.scores[0] || null : g.scores }))
+      .filter((g) => isListed(g.analysis_status, g.scores?.verdict_v2)) as ListedGame[];
   } catch {
     return []; // Supabase not configured
   }

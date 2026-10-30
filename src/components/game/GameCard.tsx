@@ -1,6 +1,6 @@
 import Link from "next/link";
 import Image from "next/image";
-import { VERDICTS, bsColor, type VerdictKey } from "@/lib/scoring/v2";
+import { VERDICTS, bsColor, displayIndex, type VerdictKey } from "@/lib/scoring/v2";
 import { VerdictIcon } from "./VerdictIcon";
 
 type GameCardProps = {
@@ -38,7 +38,7 @@ export function GameCard({ slug, title, coverUrl, verdict, bsIndex }: GameCardPr
             </span>
             {bsIndex != null && (
               <span className="font-label text-[10px] tabular-nums" style={{ color: bsColor(bsIndex) }}>
-                BS {bsIndex}
+                BS ~{displayIndex(bsIndex)}
               </span>
             )}
           </div>
