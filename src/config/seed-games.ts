@@ -8,6 +8,8 @@ export type SeedGame = {
   steamAppId?: number;
   // IGDB slug for exact lookup — use when text search returns wrong results
   igdbSlug?: string;
+  // OpenCritic game ID when search cannot tell editions apart. `null` = OpenCritic has no entry for this exact game.
+  opencriticId?: number | null;
   // Manual HLTB data (hours) as fallback when scraping fails
   hltb?: {
     mainStory: number;
@@ -29,6 +31,8 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Resident Evil 4 Remake",
+    opencriticId: 14200,
+    igdbSlug: "resident-evil-4--1",
     slug: "resident-evil-4-remake",
     priceUsd: 59.99,
     genres: ["Horror", "Action"],
@@ -76,6 +80,7 @@ export const SEED_GAMES: SeedGame[] = [
   // High Signal candidates
   {
     title: "The Witcher 3: Wild Hunt",
+    igdbSlug: "the-witcher-3-wild-hunt",
     slug: "the-witcher-3-wild-hunt",
     priceUsd: 39.99,
     genres: ["Open World", "RPG"],
@@ -85,6 +90,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Hollow Knight",
+    igdbSlug: "hollow-knight",
     slug: "hollow-knight",
     priceUsd: 14.99,
     genres: ["Metroidvania", "Indie"],
@@ -169,6 +175,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Mass Effect 3",
+    opencriticId: null,
     slug: "mass-effect-3",
     priceUsd: 59.99,
     genres: ["RPG", "Sci-Fi", "Action"],
@@ -263,6 +270,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Hollow Knight: Silksong",
+    igdbSlug: "hollow-knight-silksong",
     slug: "hollow-knight-silksong",
     priceUsd: 19.99,
     genres: ["Metroidvania", "Indie", "Platformer"],
@@ -277,7 +285,7 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Hero Shooter", "Multiplayer"],
     genreKey: "multiplayer-shooter",
     steamAppId: 2357570,
-    igdbSlug: "overwatch-2",
+    igdbSlug: "overwatch--1",
   },
   {
     title: "Marvel Rivals",
@@ -305,6 +313,7 @@ export const SEED_GAMES: SeedGame[] = [
   },
   {
     title: "Mortal Shell II",
+    opencriticId: 20988,
     slug: "mortal-shell-2",
     priceUsd: 49.99,
     genres: ["Souls-like", "Action", "RPG"],
@@ -326,5 +335,38 @@ export const SEED_GAMES: SeedGame[] = [
     genres: ["Open World", "RPG", "Action"],
     genreKey: "open-world-rpg",
     steamAppId: 3751260,
+  },
+  // Turn-based tactics (added for genre variety; ingested only, not yet scored)
+  {
+    // 2025 remaster (IGDB 347121), not the 1997 PSX original or the War of the Lions PSP port
+    title: "Final Fantasy Tactics: The Ivalice Chronicles",
+    slug: "final-fantasy-tactics-the-ivalice-chronicles",
+    igdbSlug: "final-fantasy-tactics-the-ivalice-chronicles",
+    priceUsd: 49.99,
+    genres: ["Tactical RPG", "Turn-based Strategy", "JRPG"],
+    genreKey: "jrpg",
+    steamAppId: 1004640,
+  },
+  {
+    // 2016 base game (IGDB 10919), not the Collection bundle, War of the Chosen, or Enemy Unknown
+    title: "XCOM 2",
+    slug: "xcom-2",
+    igdbSlug: "xcom-2",
+    priceUsd: 59.99,
+    genres: ["Turn-based Strategy", "Tactical"],
+    genreKey: "pure-gameplay",
+    steamAppId: 268500,
+  },
+  // Puzzle/adventure (added for the rating-reliability test set; ingested only, not yet scored)
+  {
+    // 2024 base game (IGDB 206806), not the Sayonara Wild Hearts + Lorelei bundle or other Simogo games
+    title: "Lorelei and the Laser Eyes",
+    slug: "lorelei-and-the-laser-eyes",
+    igdbSlug: "lorelei-and-the-laser-eyes",
+    opencriticId: 16721,
+    priceUsd: 24.99,
+    genres: ["Puzzle", "Adventure", "Indie"],
+    genreKey: "puzzle-narrative",
+    steamAppId: 2008920,
   },
 ];

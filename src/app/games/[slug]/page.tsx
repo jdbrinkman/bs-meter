@@ -3,354 +3,258 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import Image from "next/image";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { DimensionBreakdown } from "@/components/bs-meter/DimensionBreakdown";
-import { SignalList } from "@/components/bs-meter/SignalList";
-import { BSGauge } from "@/components/bs-meter/BSGauge";
-import { getBSScoreLabel } from "@/lib/scoring/brackets";
-import type { GameSignal } from "@/lib/types";
+import { VerdictIcon } from "@/components/game/VerdictIcon";
+import { JUICE, SQUEEZE, VERDICTS, bsColor, displayIndex, normalizeRating, type MeasureDef, type Ratings } from "@/lib/scoring/v2";
 
 type PageParams = Promise<{ slug: string }>;
 
-export default async function GameDetailPage({
-  params,
-}: {
-  params: PageParams;
-}) {
+export default async function GameDetailPage({ params }: { params: PageParams }) {
   const { slug } = await params;
   const supabase = createAdminClient();
 
   const { data: game, error } = await supabase
     .from("games")
-    .select(
-      `
-      *,
-      scores (*),
-      signals (*),
-      review_sources (id, source_type, channel_name, video_title, url)
-    `
-    )
+    .select(`*, scores (*), review_sources (id, source_type, channel_name, video_title, url), critic_reviews (id, outlet, score, url, published_at)`)
     .eq("slug", slug)
     .single();
 
-  if (error || !game) {
-    notFound();
-  }
+  if (error || !game) notFound();
 
-  const score = Array.isArray(game.scores)
-    ? game.scores[0] || null
-    : game.scores;
-  const signals = (game.signals || []) as GameSignal[];
+  const score = Array.isArray(game.scores) ? game.scores[0] || null : game.scores;
   const reviewSources = game.review_sources || [];
+  const criticReviews = ((game.critic_reviews || []) as { id: string; outlet: string; score: number | null; url: string | null }[]).filter(
+    (c) => c.url
+  );
+  const videos = reviewSources.filter((r: { source_type: string }) => r.source_type === "youtube");
+  const articles = reviewSources.filter((r: { source_type: string }) => r.source_type === "article");
+  const ratings = (score?.ratings ?? null) as Ratings | null;
+  const verdict = score?.verdict_v2 ? VERDICTS[score.verdict_v2 as keyof typeof VERDICTS] : null;
+  const bs: number | null = score?.bs_index ?? null;
+  const juice: number | null = score?.juice_index ?? null;
 
-  const bsLabel = score ? getBSScoreLabel(score.bs_score) : null;
+  const meta = [
+    game.genres?.[0],
+    priceLabel(game),
+    game.release_date ? new Date(game.release_date).getFullYear() : null,
+  ].filter(Boolean);
+
+  const hours = [
+    game.main_story_hours && `Story ${Math.round(game.main_story_hours)}h`,
+    game.completionist_hours && `Everything ${Math.round(game.completionist_hours)}h`,
+  ].filter(Boolean);
+
   return (
     <div className="min-h-screen bg-background">
-
-      {/* ── HEADER — flat, open ── */}
-      <div className="mx-auto max-w-7xl px-6 md:px-12 pt-10 pb-8">
-        {game.genres?.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-5">
-            {game.genres.map((genre: string) => (
-              <span
-                key={genre}
-                className="bg-surface-container-high px-3 py-1 rounded-md text-[10px] font-label text-on-surface-variant tracking-widest uppercase"
-              >
-                {genre}
-              </span>
-            ))}
-          </div>
-        )}
-        <h1 className="text-5xl md:text-7xl font-black uppercase tracking-tighter text-on-surface font-headline leading-none mb-6">
-          {game.title}
-        </h1>
-        <div className="flex flex-wrap gap-x-8 gap-y-3">
-          {game.developer && (
-            <div className="flex flex-col">
-              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Developer</span>
-              <span className="font-headline font-semibold text-sm text-on-surface">{game.developer}</span>
-            </div>
-          )}
-          {game.release_date && (
-            <div className="flex flex-col">
-              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Release</span>
-              <span className="font-headline font-semibold text-sm text-on-surface">
-                {new Date(game.release_date).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })}
-              </span>
-            </div>
-          )}
-          {game.price_usd && (
-            <div className="flex flex-col">
-              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Price</span>
-              <span className="font-headline font-semibold text-sm text-on-surface">${game.price_usd}</span>
-            </div>
-          )}
-          {game.platforms?.length > 0 && (
-            <div className="flex flex-col">
-              <span className="text-[9px] font-label uppercase tracking-widest text-outline mb-1">Platform</span>
-              <span className="font-headline font-semibold text-sm text-on-surface">{game.platforms.slice(0, 2).join(" / ")}</span>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* ── FORENSIC GRID ── */}
-      <section className="mx-auto max-w-7xl px-6 md:px-12 pb-16">
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-
-          {/* Left col: sticky cover art */}
-          <div className="lg:col-span-4 lg:sticky lg:top-24">
-            <div className="relative overflow-hidden rounded-xl bg-surface-container aspect-[3/4]">
-              {game.cover_url ? (
-                <Image
-                  src={game.cover_url}
-                  alt={game.title}
-                  fill
-                  className="object-cover"
-                  priority
-                />
-              ) : (
-                <div className="flex h-full items-center justify-center text-on-surface-variant text-xs font-label">
-                  No Cover
-                </div>
-              )}
-              <div className="absolute inset-0 bg-gradient-to-t from-surface/80 to-transparent" />
-            </div>
+      <div className="mx-auto max-w-5xl px-6 py-10">
+        <div className="flex flex-col gap-8 sm:flex-row">
+          <div className="relative aspect-[3/4] w-40 flex-shrink-0 overflow-hidden rounded-xl bg-surface-container sm:w-56">
+            {game.cover_url && (
+              <Image src={game.cover_url} alt={game.title} fill className="object-cover" priority sizes="224px" />
+            )}
           </div>
 
-          {/* Right col: gauge + evidence */}
-          <div className="lg:col-span-8 space-y-6">
+          <div className="flex-1">
+            <h1 className="font-headline text-3xl font-black tracking-tight text-on-surface md:text-5xl">
+              {game.title}
+            </h1>
+            <p className="mt-1 mb-6 font-label text-sm text-on-surface-variant">
+              {[...meta, ...hours].join(" · ")}
+            </p>
 
-            {/* Gauge card */}
-            {score && bsLabel && (
-              <div className="relative overflow-visible rounded-xl bg-surface-container-low border border-outline-variant/10 p-8">
-                {/* Ambient glow */}
-                <div
-                  className="absolute top-0 right-0 w-64 h-64 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/2 pointer-events-none"
-                  style={{ backgroundColor: `${bsLabel.color}15` }}
-                />
-                <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
-                  {/* Gauge with label above and below */}
-                  <div className="flex flex-col items-center flex-shrink-0">
-                    <p className="text-[10px] font-label uppercase tracking-[0.2em] text-on-surface-variant mb-2">
-                      BS Meter Score
-                    </p>
-                    <BSGauge score={score.bs_score} />
-                  </div>
-
-                  {/* Top reasons */}
-                  {score.top_reasons && score.top_reasons.length > 0 && (
-                    <div className="flex-1 space-y-3">
-                      {score.top_reasons.slice(0, 3).map((reason: string, i: number) => (
-                        <div key={i} className="flex gap-3 items-start">
-                          <div
-                            className="w-5 h-5 flex-shrink-0 rounded-full flex items-center justify-center text-[10px] font-black font-headline mt-0.5"
-                            style={{ backgroundColor: `${bsLabel.color}20`, color: bsLabel.color }}
-                          >
-                            {i + 1}
-                          </div>
-                          <p className="text-on-surface-variant font-body text-sm leading-relaxed">
-                            {reason}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+            {/* 1 — THE ANSWER */}
+            {verdict && score?.verdict_v2 && (
+              <div className="rounded-2xl p-6" style={{ backgroundColor: `${verdict.color}1f` }}>
+                <div className="flex items-center gap-3">
+                  <VerdictIcon kind={score.verdict_v2} size={40} color={verdict.color} />
+                  <span className="font-headline text-4xl font-black md:text-5xl" style={{ color: verdict.color }}>
+                    {verdict.label}
+                  </span>
                 </div>
+                {score.headline && (
+                  <p className="mt-4 font-body text-base leading-relaxed text-on-surface">{score.headline}</p>
+                )}
               </div>
             )}
 
-            {/* Evidence — 2 columns */}
-            {signals.length > 0 && (
-              <div className="rounded-xl bg-surface-container-low border border-outline-variant/10 p-6">
-                <h3 className="font-headline text-lg font-bold tracking-tight uppercase mb-5">
-                  The Evidence
-                </h3>
-                <SignalList signals={signals} columns={true} />
+            {/* 2 — TWO NUMBERS */}
+            {bs !== null && juice !== null && (
+              <div className="mt-4 grid grid-cols-2 gap-3">
+                <IndexCard label="Juice · higher is better" value={juice} color="#22C55E" />
+                <IndexCard label="BS · lower is better" value={bs} color={bsColor(bs)} />
               </div>
             )}
-
           </div>
         </div>
-      </section>
 
-      {/* ── DIMENSION BREAKDOWN ── */}
-      {score && (
-        <section className="bg-surface-container-low py-16 px-6 md:px-8">
-          <div className="mx-auto max-w-[1440px]">
-            <div className="text-center mb-12">
-              <h2 className="text-4xl md:text-5xl font-headline font-bold tracking-tighter text-on-surface mb-3">
-                Dimension Breakdown
-              </h2>
-              <div className="w-20 h-1 bg-primary mx-auto rounded-full" />
-            </div>
-            <DimensionBreakdown
-              story_quality={score.story_quality_score}
-              narrative_investment={score.narrative_investment_score}
-              pacing={score.pacing_score}
-              combat_repetition={score.combat_repetition_score}
-              boss_difficulty={score.boss_difficulty_score}
-              exploration={score.exploration_score}
-              polish_bugs={score.polish_bugs_score}
-              ui_controls={score.ui_controls_score}
-              atmospheric_depth={score.atmospheric_depth_score}
-            />
-          </div>
-        </section>
-      )}
-
-
-      {/* ── BODY ── */}
-      <div className="mx-auto max-w-[1440px] px-6 md:px-8 py-12">
-
-        {/* Time to Beat + Steam + OpenCritic */}
-        <div className="grid gap-6 md:grid-cols-3">
-          {(game.main_story_hours || game.main_extras_hours || game.completionist_hours) && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
-              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
-                Time to Beat
-              </h3>
-              <div className="space-y-3">
-                <TimeBar
-                  label="Main Story"
-                  hours={game.main_story_hours}
-                  maxHours={game.completionist_hours || 100}
-                  color="#3fff8b"
-                />
-                <TimeBar
-                  label="Main + Extras"
-                  hours={game.main_extras_hours}
-                  maxHours={game.completionist_hours || 100}
-                  color="#45fec9"
-                />
-                <TimeBar
-                  label="Completionist"
-                  hours={game.completionist_hours}
-                  maxHours={game.completionist_hours || 100}
-                  color="#adaaaa"
-                />
-              </div>
-              {game.main_story_hours && game.completionist_hours && (
-                <p className="mt-4 text-xs text-outline font-label">
-                  Bloat Ratio: {(game.main_story_hours / game.completionist_hours).toFixed(2)}{" "}
-                  —{" "}
-                  {game.completionist_hours / game.main_story_hours > 3
-                    ? "Significant padding detected"
-                    : "Reasonable content spread"}
-                </p>
-              )}
-            </div>
-          )}
-
-          {game.steam_review_score_desc && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
-              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
-                Steam Users
-              </h3>
-              <div>
-                <p className="text-2xl font-black font-headline text-on-surface mt-4">
-                  {game.steam_review_score_desc}
-                </p>
-                {game.steam_total_reviews && (
-                  <p className="mt-1 text-xs text-outline font-label">
-                    {game.steam_total_reviews.toLocaleString()} reviews
-                  </p>
-                )}
-              </div>
-              {game.steam_app_id && (
-                <a
-                  href={`https://store.steampowered.com/app/${game.steam_app_id}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-4 inline-block text-xs font-label text-outline hover:text-on-surface transition-colors"
-                >
-                  View on Steam →
-                </a>
-              )}
-            </div>
-          )}
-
-          {game.opencritic_score && (
-            <div className="rounded-2xl border border-outline-variant/20 bg-surface-container p-6 flex flex-col justify-between min-h-[160px]">
-              <h3 className="text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
-                OpenCritic
-              </h3>
-              <div>
-                <p className="text-5xl font-black font-headline text-on-surface mt-4">
-                  {Math.round(game.opencritic_score)}
-                </p>
-                {game.opencritic_tier && (
-                  <p className="mt-1 text-xs text-outline font-label">
-                    {game.opencritic_tier}
-                  </p>
-                )}
-              </div>
-              <div className="mt-4" />
-            </div>
-          )}
-        </div>
-
-
-        {/* Review Sources */}
-        {reviewSources.length > 0 && (
-          <div className="mt-6">
-            <h3 className="mb-3 text-xs font-label font-semibold uppercase tracking-widest text-on-surface-variant">
-              Sources Analyzed
-            </h3>
-            <div className="flex flex-wrap gap-2">
-              {reviewSources.map(
-                (rs: {
-                  id: string;
-                  channel_name: string | null;
-                  url: string | null;
-                  video_title: string | null;
-                }) => (
-                  <a
-                    key={rs.id}
-                    href={rs.url || "#"}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="rounded-xl border border-outline-variant/20 bg-surface-container px-3 py-2 text-xs text-on-surface-variant font-label transition-colors hover:border-outline-variant hover:text-on-surface"
-                    title={rs.video_title || undefined}
-                  >
-                    {rs.channel_name || "Review Source"}
-                  </a>
-                )
-              )}
-            </div>
+        {/* 3 — ALL 12 MEASURES, every game, reason inline */}
+        {ratings && (
+          <div className="mt-10 grid grid-cols-1 gap-4 md:grid-cols-2">
+            <MeasureColumn title="The juice" color="#22C55E" defs={JUICE} ratings={ratings} />
+            <MeasureColumn title="The BS" color="#EF4444" defs={SQUEEZE} ratings={ratings} />
           </div>
         )}
+        {score?.provisional && (
+          <p className="mt-4 font-label text-xs text-on-surface-variant">
+            Provisional: the sources we read don&apos;t cover several measures, so treat these numbers as a rough guide.
+          </p>
+        )}
+        {score?.rough_launch && (
+          <p className="mt-4 font-label text-xs text-on-surface-variant">
+            Rough at launch. Ratings reflect the game as it is today.
+          </p>
+        )}
 
+        <div className="mt-10 divide-y divide-outline-variant/15 border-t border-outline-variant/15">
+          {(game.steam_review_score_desc || game.opencritic_score) && (
+            <Collapsible title="Steam and OpenCritic">
+              <div className="flex flex-wrap gap-8 font-label text-sm text-on-surface-variant">
+                {game.steam_review_score_desc && (
+                  <p>
+                    Steam: <span className="text-on-surface">{game.steam_review_score_desc}</span>
+                    {game.steam_total_reviews ? ` (${game.steam_total_reviews.toLocaleString()} reviews)` : ""}
+                  </p>
+                )}
+                {game.opencritic_score && (
+                  <p>
+                    OpenCritic: <span className="text-on-surface">{Math.round(game.opencritic_score)}</span>
+                    {game.opencritic_tier ? ` (${game.opencritic_tier})` : ""}
+                  </p>
+                )}
+              </div>
+            </Collapsible>
+          )}
+
+          {(videos.length > 0 || articles.length > 0 || criticReviews.length > 0) && (
+            <Collapsible title="Sources">
+              <div className="space-y-6">
+                {videos.length > 0 && <SourceGroup label="Video reviews we read" items={videos.map((v: SourceRow) => ({ key: v.id, text: v.channel_name || "Review", url: v.url, title: v.video_title }))} />}
+                {articles.length > 0 && <SourceGroup label="Written reviews we read" items={articles.map((a: SourceRow) => ({ key: a.id, text: a.channel_name || "Review", url: a.url, title: a.video_title }))} />}
+                {criticReviews.length > 0 && (
+                  <SourceGroup
+                    label={`Critic reviews on OpenCritic (${criticReviews.length})`}
+                    items={criticReviews
+                      .slice()
+                      .sort((a, b) => (b.score ?? -1) - (a.score ?? -1))
+                      .map((c) => ({ key: c.id, text: c.score != null ? `${c.outlet} ${Math.round(c.score)}` : c.outlet, url: c.url, title: null }))}
+                  />
+                )}
+              </div>
+            </Collapsible>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
-function TimeBar({
-  label,
-  hours,
-  maxHours,
-  color,
-}: {
-  label: string;
-  hours: number | null;
-  maxHours: number;
-  color: string;
-}) {
-  if (!hours) return null;
-  const pct = Math.min(100, (hours / maxHours) * 100);
+type SourceRow = { id: string; channel_name: string | null; url: string | null; video_title: string | null };
 
+function SourceGroup({ label, items }: { label: string; items: { key: string; text: string; url: string | null; title: string | null }[] }) {
   return (
     <div>
-      <div className="mb-1.5 flex justify-between text-xs">
-        <span className="text-on-surface font-body">{label}</span>
-        <span className="text-on-surface-variant font-label tabular-nums">{hours.toFixed(0)}h</span>
-      </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-surface-container-highest">
-        <div
-          className="h-full rounded-full transition-all"
-          style={{ width: `${pct}%`, backgroundColor: color }}
-        />
+      <p className="mb-2 font-label text-[11px] uppercase tracking-widest text-on-surface-variant">{label}</p>
+      <div className="flex flex-wrap gap-2">
+        {items.map((i) => (
+          <a
+            key={i.key}
+            href={i.url || "#"}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-lg bg-surface-container px-3 py-2 font-label text-xs text-on-surface-variant hover:text-on-surface"
+            title={i.title || undefined}
+          >
+            {i.text}
+          </a>
+        ))}
       </div>
     </div>
+  );
+}
+
+type PriceGame = {
+  price_usd: number | string | null;
+  current_price_usd: number | string | null;
+  price_source: string | null;
+  price_history: { historyLow?: { all: number | null } } | null;
+};
+
+function priceLabel(g: PriceGame): string | null {
+  const list = g.price_usd != null ? Number(g.price_usd) : null;
+  const now = g.current_price_usd != null ? Number(g.current_price_usd) : null;
+  const low = g.price_history?.historyLow?.all ?? null;
+  if (now == null) return list != null ? `$${list} list price` : null;
+  const main = now === 0 ? "Free" : list != null && now < list ? `$${now} (was $${list})` : `$${now}`;
+  return low != null && now > 0 && low < now * 0.8 ? `${main}, all-time low $${low}` : main;
+}
+
+function IndexCard({ label, value, color }: { label: string; value: number; color: string }) {
+  // Five-level ratings do not support one-point precision, so show the nearest 5.
+  const shown = displayIndex(value) ?? value;
+  return (
+    <div className="rounded-xl bg-surface-container p-4">
+      <p className="font-label text-[11px] text-on-surface-variant">{label}</p>
+      <p className="mt-1 font-headline text-3xl font-black text-on-surface">
+        {shown}
+        <span className="text-sm font-medium text-on-surface-variant"> / 100</span>
+      </p>
+      <div className="mt-2 h-1.5 rounded-full bg-surface-container-highest">
+        <div className="h-full rounded-full" style={{ width: `${shown}%`, backgroundColor: color }} />
+      </div>
+    </div>
+  );
+}
+
+function MeasureColumn({ title, color, defs, ratings }: { title: string; color: string; defs: MeasureDef[]; ratings: Ratings }) {
+  return (
+    <div className="rounded-2xl bg-surface-container p-5">
+      <h2 className="mb-4 font-headline text-sm font-black uppercase tracking-widest" style={{ color }}>
+        {title}
+      </h2>
+      <ul className="space-y-4">
+        {defs.map((d) => {
+          const r = normalizeRating(ratings[d.key]);
+          if (!r) return null;
+          const value = r.status === "rated" ? r.rating : null;
+          const empty = value == null;
+          return (
+            <li key={d.key} className={empty ? "opacity-50" : ""}>
+              <div className="flex items-center justify-between">
+                <span className="font-headline text-base font-bold text-on-surface">{d.label}</span>
+                {empty ? (
+                  <span className="font-label text-xs text-on-surface-variant">
+                    {r.status === "not_applicable" ? "N/A" : "Not discussed"}
+                  </span>
+                ) : (
+                  <span className="flex gap-1" role="img" aria-label={`${value} of 5`}>
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <span key={n} className="h-2.5 w-2.5 rounded-sm" style={{ backgroundColor: n <= value ? color : "#333" }} />
+                    ))}
+                  </span>
+                )}
+              </div>
+              <p className="mt-1 font-body text-sm text-on-surface-variant">
+                {r.status === "not_applicable"
+                  ? "Doesn't apply to this kind of game."
+                  : r.status === "not_discussed"
+                    ? "The sources we read don't cover this."
+                    : r.reason}
+              </p>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
+function Collapsible({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <details className="group py-4">
+      <summary className="flex cursor-pointer list-none items-center justify-between font-label text-sm text-on-surface-variant hover:text-on-surface">
+        {title}
+        <span className="transition-transform group-open:rotate-45" aria-hidden="true">+</span>
+      </summary>
+      <div className="pt-6">{children}</div>
+    </details>
   );
 }

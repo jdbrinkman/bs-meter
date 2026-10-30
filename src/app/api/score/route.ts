@@ -1,26 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
-import { scoreGame } from "@/lib/pipeline/process";
+import { scoreGameV2 } from "@/lib/pipeline/score-v2";
 
-export const maxDuration = 60;
+export const maxDuration = 120;
 
+/** Score one game from its stored sources (no fetching). */
 export async function POST(request: NextRequest) {
-  const apiKey = request.headers.get("x-api-key");
-  if (apiKey !== process.env.ADMIN_API_KEY) {
+  if (request.headers.get("x-api-key") !== process.env.ADMIN_API_KEY) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
-  const body = await request.json();
-  const { gameId } = body;
-
-  if (!gameId) {
-    return NextResponse.json({ error: "gameId is required" }, { status: 400 });
-  }
-
+  const { gameId } = await request.json();
+  if (!gameId) return NextResponse.json({ error: "gameId is required" }, { status: 400 });
   try {
-    await scoreGame(gameId);
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, ...(await scoreGameV2(gameId)) });
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: message }, { status: 500 });
+    return NextResponse.json({ error: error instanceof Error ? error.message : String(error) }, { status: 500 });
   }
 }

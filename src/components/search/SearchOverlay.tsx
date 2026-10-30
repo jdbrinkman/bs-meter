@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ScoreGauge } from "@/components/bs-meter/ScoreGauge";
+import { VERDICTS, type VerdictKey } from "@/lib/scoring/v2";
 
 type SearchResult = {
   slug: string;
   title: string;
   cover_url: string | null;
   developer: string | null;
-  scores: { bs_score: number; verdict: string } | null;
+  scores: { verdict_v2: VerdictKey | null; bs_index: number | null } | null;
 };
 
 type SearchOverlayProps = {
@@ -156,8 +156,10 @@ export function SearchOverlay({ isOpen, onClose }: SearchOverlayProps) {
                         </p>
                       )}
                     </div>
-                    {game.scores?.bs_score != null && (
-                      <ScoreGauge bsScore={game.scores.bs_score} size="sm" />
+                    {game.scores?.verdict_v2 && (
+                      <span className="shrink-0 font-headline text-xs font-black" style={{ color: VERDICTS[game.scores.verdict_v2].color }}>
+                        {VERDICTS[game.scores.verdict_v2].label}
+                      </span>
                     )}
                   </Link>
                 </li>

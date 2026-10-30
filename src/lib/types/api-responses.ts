@@ -12,6 +12,8 @@ export type IGDBGame = {
     publisher: boolean;
   }[];
   first_release_date?: number;
+  game_type?: { type: string };
+  rating_count?: number;
 };
 
 export type HLTBResult = {
@@ -40,7 +42,8 @@ export type YouTubeSearchResult = {
 export type ReviewSource = {
   id: string;
   game_id: string;
-  source_type: "youtube" | "opencritic" | "hltb" | "steam";
+  source_type: "youtube" | "opencritic" | "hltb" | "steam" | "article";
+  published_at?: string | null;
   channel_name: string | null;
   video_id: string | null;
   video_title: string | null;

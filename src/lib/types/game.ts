@@ -31,9 +31,12 @@ export type Game = {
   main_story_hours: number | null;
   main_extras_hours: number | null;
   completionist_hours: number | null;
+  hours_source: "seed" | "igdb" | "hltb" | null;
 
   // Price
   price_usd: number | null;
+  current_price_usd: number | null;
+  steam_facts: Record<string, unknown> | null;
 
   // OpenCritic
   opencritic_score: number | null;

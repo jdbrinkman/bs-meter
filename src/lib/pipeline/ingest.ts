@@ -1,19 +1,12 @@
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  searchIGDB,
-  searchIGDBBySlug,
-  extractDeveloper,
-  extractPublisher,
-  formatCoverUrl,
-  filterPlatforms,
-} from "@/lib/api/igdb";
-import { resolveCoverUrl, urlLoads } from "@/lib/api/cover";
-import { searchHLTB } from "@/lib/api/hltb";
-import { searchOpenCritic } from "@/lib/api/opencritic";
-import { searchYouTubeChannel, fetchTranscript } from "@/lib/api/youtube";
+import { urlLoads } from "@/lib/api/cover";
+import { searchOpenCritic, getOpenCriticGame } from "@/lib/api/opencritic";
+import { ingestYouTubeSources } from "./ingest-youtube";
+import { refreshMetadata } from "./ingest-metadata";
+import { ingestCritics } from "./ingest-critics";
+import { ingestSteam } from "./ingest-steam";
+import { ingestTimeToBeat } from "./ingest-time";
 import { searchRedditSentiment } from "@/lib/api/reddit";
-import { findSteamAppId, fetchSteamReviews } from "@/lib/api/steam";
-import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
 import { SEED_GAMES } from "@/config/seed-games";
 
 export async function ingestGameData(
@@ -34,83 +27,33 @@ export async function ingestGameData(
       (g) => g.title.toLowerCase() === title.toLowerCase()
     );
 
-    // 1. IGDB metadata
-    // Use exact slug lookup when available to avoid fuzzy search mismatches
-    const igdbData = seedGame?.igdbSlug
-      ? await searchIGDBBySlug(seedGame.igdbSlug)
-      : await searchIGDB(title);
+    // 1. IGDB metadata (exact slug when seeded; otherwise a verified title match)
+    await refreshMetadata(gameId, title, seedGame);
 
-    if (igdbData) {
-      // Only keeps a cover URL that actually loads (Steam → IGDB → Steam header)
-      const coverUrl = await resolveCoverUrl({
-        title,
-        steamAppId: seedGame?.steamAppId,
-        igdbCoverUrl: formatCoverUrl(igdbData.cover?.url),
-      });
-
+    // 2. Time to beat: hand-entered hours from the seed list win; IGDB community data fills the gaps
+    if (seedGame?.hltb) {
       await supabase
         .from("games")
         .update({
-          igdb_id: igdbData.id,
-          cover_url: coverUrl,
-          summary: igdbData.summary || null,
-          genres: igdbData.genres?.map((g) => g.name) || [],
-          platforms: filterPlatforms(
-            igdbData.platforms?.map((p) => p.name) || []
-          ),
-          developer: extractDeveloper(igdbData),
-          publisher: extractPublisher(igdbData),
-          release_date: igdbData.first_release_date
-            ? new Date(igdbData.first_release_date * 1000)
-                .toISOString()
-                .split("T")[0]
-            : null,
+          main_story_hours: seedGame.hltb.mainStory,
+          main_extras_hours: seedGame.hltb.mainExtras,
+          completionist_hours: seedGame.hltb.completionist,
+          hours_source: "seed",
         })
         .eq("id", gameId);
-    } else {
-      // IGDB returned nothing — fall back to Steam art so the game isn't blank
-      const coverUrl = await resolveCoverUrl({
-        title,
-        steamAppId: seedGame?.steamAppId,
-        igdbCoverUrl: null,
-      });
-      if (coverUrl) {
-        await supabase.from("games").update({ cover_url: coverUrl }).eq("id", gameId);
-      }
     }
-
-    // 2. HLTB time data (try scraper, then fall back to seed data)
-    const hltbData = await searchHLTB(title);
-    if (hltbData) {
-      await supabase
-        .from("games")
-        .update({
-          hltb_id: parseInt(hltbData.id),
-          main_story_hours: hltbData.gameplayMain || null,
-          main_extras_hours: hltbData.gameplayMainExtra || null,
-          completionist_hours: hltbData.gameplayCompletionist || null,
-        })
-        .eq("id", gameId);
-    } else {
-      // Fallback: use manual HLTB data from seed config
-      if (seedGame?.hltb) {
-        console.log(`Using seed HLTB data for ${title}`);
-        await supabase
-          .from("games")
-          .update({
-            main_story_hours: seedGame.hltb.mainStory,
-            main_extras_hours: seedGame.hltb.mainExtras,
-            completionist_hours: seedGame.hltb.completionist,
-          })
-          .eq("id", gameId);
-      } else {
-        console.warn(`No HLTB data available for ${title}`);
-      }
-    }
+    await ingestTimeToBeat(gameId);
 
     // 3. OpenCritic
     try {
-      const ocData = await searchOpenCritic(title);
+      let ocData = null;
+      if (seedGame && "opencriticId" in seedGame) {
+        // Seed knows the answer (an exact ID, or null when OpenCritic has no entry for this game)
+        ocData = seedGame.opencriticId ? await getOpenCriticGame(seedGame.opencriticId) : null;
+      } else {
+        const { data: row } = await supabase.from("games").select("release_date").eq("id", gameId).single();
+        ocData = await searchOpenCritic(title, row?.release_date ? new Date(row.release_date).getFullYear() : null);
+      }
       if (ocData) {
         await supabase
           .from("games")
@@ -120,38 +63,14 @@ export async function ingestGameData(
             opencritic_tier: ocData.tier,
           })
           .eq("id", gameId);
+        await ingestCritics(gameId, ocData.id);
       }
     } catch (error) {
       console.warn(`OpenCritic fetch failed for ${title}:`, error);
     }
 
     // 4. YouTube transcripts from trusted reviewers
-    for (const reviewer of TRUSTED_REVIEWERS) {
-      try {
-        const searchResult = await searchYouTubeChannel(title, reviewer);
-        if (!searchResult) continue;
-
-        const transcript = await fetchTranscript(searchResult.videoId);
-
-        await supabase.from("review_sources").insert({
-          game_id: gameId,
-          source_type: "youtube",
-          channel_name: reviewer.channelName,
-          video_id: searchResult.videoId,
-          video_title: searchResult.title,
-          transcript: transcript,
-          url: `https://www.youtube.com/watch?v=${searchResult.videoId}`,
-        });
-
-        // Small delay to respect YouTube API rate limits
-        await new Promise((resolve) => setTimeout(resolve, 200));
-      } catch (error) {
-        console.warn(
-          `Failed to fetch review from ${reviewer.channelName}:`,
-          error
-        );
-      }
-    }
+    await ingestYouTubeSources(gameId, title);
 
     // 5. Reddit sentiment via Perplexity (optional — graceful failure)
     const redditSentiment = await searchRedditSentiment(title);
@@ -159,55 +78,8 @@ export async function ingestGameData(
       console.log(`Reddit sentiment fetched for ${title}`);
     }
 
-    // 6. Steam user reviews (optional — graceful failure)
-    try {
-      const { data: gameRecord } = await supabase
-        .from("games")
-        .select("steam_app_id")
-        .eq("id", gameId)
-        .single();
-
-      const steamAppId: number | null =
-        gameRecord?.steam_app_id ??
-        seedGame?.steamAppId ??
-        (await findSteamAppId(title));
-
-      if (steamAppId) {
-        if (!gameRecord?.steam_app_id) {
-          await supabase
-            .from("games")
-            .update({ steam_app_id: steamAppId })
-            .eq("id", gameId);
-        }
-
-        const steamData = await fetchSteamReviews(steamAppId);
-        if (steamData) {
-          await supabase
-            .from("games")
-            .update({
-              steam_review_score_desc: steamData.summary.review_score_desc,
-              steam_total_reviews: steamData.summary.total_reviews,
-            })
-            .eq("id", gameId);
-
-          await supabase.from("review_sources").insert({
-            game_id: gameId,
-            source_type: "steam",
-            channel_name: "Steam Users",
-            video_id: String(steamAppId),
-            video_title: `Steam Reviews (${steamData.summary.review_score_desc})`,
-            transcript: steamData.reviewText,
-            url: `https://store.steampowered.com/app/${steamAppId}`,
-          });
-
-          console.log(
-            `Steam reviews fetched for ${title}: ${steamData.summary.review_score_desc} (${steamData.summary.total_reviews.toLocaleString()} reviews)`
-          );
-        }
-      }
-    } catch (error) {
-      console.warn(`Steam ingestion failed for ${title}:`, error);
-    }
+    // 6. Steam store facts + review sample
+    await ingestSteam(gameId, title);
 
     console.log(`Ingestion complete for: ${title}`);
     // Final check: a game must never finish ingest with a broken or missing cover

@@ -1,194 +1,134 @@
-import { NEGATIVE_SIGNALS, POSITIVE_SIGNALS } from "@/config/signal-taxonomy";
 import { TRUSTED_REVIEWERS } from "@/config/trusted-reviewers";
-import { BSGauge } from "@/components/bs-meter/BSGauge";
+import { PRIORITY_OUTLETS } from "@/config/critic-outlets";
+import { JUICE, SQUEEZE, VERDICTS, VERDICT_RULES as R, BS_TOP_WEIGHTS, type VerdictKey } from "@/lib/scoring/v2";
+import { VerdictIcon } from "@/components/game/VerdictIcon";
+
+const VERDICT_MEANING: Record<VerdictKey, string> = {
+  "worth-it": `Good game, manageable BS, fair price. Juice of ${R.worthJuiceCheap}+ (${R.worthJuiceExpensive}+ above $${R.expensiveAbove}) and BS of ${R.worthBsAtMost} or less.`,
+  wait: "A good game that is not a good deal at today's price, or one with enough BS that it should be cheaper.",
+  "not-yet": `A recent release (under ${R.notYetMaxAgeMonths} months) that is still too broken to recommend. Check back after patches.`,
+  skip: `Juice under ${R.skipJuiceBelow}, or heavy BS (${R.skipBsAtLeast}+) without enough good to justify it.`,
+};
 
 export default function AboutPage() {
   return (
-    <div className="mx-auto max-w-4xl px-4 py-12">
-      <h1 className="mb-2 text-3xl font-bold text-white">Methodology</h1>
-      <p className="mb-8 text-zinc-400">
-        How BS Meter evaluates games and determines whether they respect your time.
+    <div className="mx-auto max-w-4xl px-6 py-12">
+      <h1 className="mb-2 font-headline text-3xl font-black text-on-surface">Methodology</h1>
+      <p className="mb-10 font-body text-on-surface-variant">
+        How we decide whether a game is worth your time and your money, and where that judgment can be wrong.
       </p>
 
-      <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 mb-12">
-        <div className="shrink-0">
-          <BSGauge score={4.0} showLabel />
-        </div>
-        <div className="space-y-4 pt-2 sm:pt-8">
-          {[
-            { label: "Respectful",   color: "#22C55E", desc: "Tight pacing with no filler. Every hour earns its place." },
-            { label: "Tolerable",    color: "#EAB308", desc: "Some repetition or padding, but nothing that derails the experience." },
-            { label: "Tedious",      color: "#F97316", desc: "Routine filler regularly gets in the way of the good stuff." },
-            { label: "Exploitative", color: "#EF4444", desc: "Deliberately wastes your time through grind, gating, or monetization." },
-          ].map((tier) => (
-            <div key={tier.label} className="flex items-start gap-3 text-xs">
-              <span className="mt-0.5 h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: tier.color }} />
+      <Section title="One verdict, two numbers">
+        <p className="mb-4 text-sm text-on-surface-variant">
+          Every game gets a verdict and two numbers from 0 to 100. <strong className="text-on-surface">Juice</strong> is how
+          good the game is (higher is better). <strong className="text-on-surface">BS</strong> is how much it wastes your time
+          or money (lower is better). The verdict weighs both against today&apos;s price.
+        </p>
+        <div className="space-y-3">
+          {(Object.keys(VERDICTS) as VerdictKey[]).map((k) => (
+            <div key={k} className="flex items-start gap-3 rounded-xl bg-surface-container p-4">
+              <VerdictIcon kind={k} size={22} color={VERDICTS[k].color} />
               <div>
-                <span className="font-bold" style={{ color: tier.color }}>{tier.label}</span>
-                <p className="text-zinc-500 mt-0.5">{tier.desc}</p>
+                <p className="font-headline font-bold" style={{ color: VERDICTS[k].color }}>{VERDICTS[k].label}</p>
+                <p className="mt-0.5 text-xs text-on-surface-variant">{VERDICT_MEANING[k]}</p>
               </div>
             </div>
           ))}
         </div>
-      </div>
+      </Section>
 
-      {/* The Rating System */}
-      <Section title="The Rating System">
-        <p className="mb-6 text-sm text-zinc-300">
-          Every game is evaluated by pulling data from multiple sources — critic reviews, player sentiment,
-          completion time data, and video reviewer transcripts — then scored across 9 dimensions.
-          Genre-adjusted weights determine the final BS score.
+      <Section title="The 12 measures">
+        <p className="mb-4 text-sm text-on-surface-variant">
+          Each game is rated 1 to 5 on the same 12 measures, with a one-line reason for each. On the BS side 1 means
+          negligible and 5 severe; on the juice side 1 means poor and 5 best in class. A juice measure that does not exist in
+          a kind of game (a story in a competitive shooter) is marked not applicable, and a measure our sources never
+          discuss is marked not discussed. Neither is counted as a good or a bad score. Every complaint is counted in exactly
+          one measure, so one problem cannot be punished twice.
         </p>
-        <div className="space-y-4">
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h4 className="mb-1 font-bold text-white">What we pull in</h4>
-            <p className="text-xs text-zinc-400">
-              Critic scores from OpenCritic, completion times from HowLongToBeat,
-              video transcripts from trusted YouTube reviewers, community sentiment from Reddit
-              via Perplexity, and game metadata from IGDB.
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h4 className="mb-1 font-bold text-white">How we analyze it</h4>
-            <p className="text-xs text-zinc-400">
-              Each game is scored across 9 dimensions using all the data above.
-              Weights shift by genre — a narrative RPG is judged primarily on story and pacing,
-              while a Soulslike lives or dies on boss design and combat.
-            </p>
-          </div>
-          <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
-            <h4 className="mb-1 font-bold text-white">What you see</h4>
-            <p className="text-xs text-zinc-400">
-              A BS score showing how much the game respects your time — displayed as a
-              colored label on every tile and an interactive gauge on each game&apos;s detail page.
-            </p>
-          </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <MeasureList title="The juice" color="#22C55E" items={JUICE} />
+          <MeasureList title="The BS" color="#EF4444" items={SQUEEZE} />
         </div>
       </Section>
 
-      {/* 9 Dimensions */}
-      <Section title="The 9 Dimensions">
-        <div className="space-y-3">
-          {[
-            { name: "Story Quality", desc: "Writing, narrative structure, and emotional resonance" },
-            { name: "Narrative Investment", desc: "How much you care about characters — atmospheric storytelling (Bloodborne, Returnal) counts fully" },
-            { name: "Pacing", desc: "Every hour earning its keep — filler and hollow padding are penalized, deliberate slowness is not" },
-            { name: "Combat Variety", desc: "Does combat stay fresh, or does it become repetitive and grinding?" },
-            { name: "Boss Design", desc: "Quality, fairness, and memorability of boss encounters" },
-            { name: "Exploration", desc: "How rewarding is world discovery — does the world feel worth exploring?" },
-            { name: "Polish & Stability", desc: "Bug-free, technically stable, no crashes or major jank" },
-            { name: "UI & Controls", desc: "Intuitive, responsive — the game gets out of its own way" },
-            { name: "Atmospheric Depth", desc: "Immersion, world-building, tonal cohesion — even without explicit dialogue" },
-          ].map((d) => (
-            <div key={d.name}>
-              <span className="text-sm font-semibold text-white">{d.name}</span>
-              <p className="text-xs text-zinc-400">{d.desc}</p>
-            </div>
-          ))}
-        </div>
+      <Section title="How the numbers are built">
+        <ul className="space-y-3 text-sm text-on-surface-variant">
+          <li>
+            <strong className="text-on-surface">Ratings come from an AI reading the evidence.</strong> It rates the 12 measures
+            against written rubrics, in two steps: first it lists the specific issues the sources raise, with quotes, then it
+            rates each measure from that list and cites it. It does not choose the verdict.
+          </li>
+          <li>
+            <strong className="text-on-surface">Juice</strong> is a weighted average of the juice ratings. Weights depend on the
+            kind of game: story counts for more in a narrative RPG, staying power for more in a roguelike.
+          </li>
+          <li>
+            <strong className="text-on-surface">BS</strong> is driven by the worst of its six measures, so one severe problem cannot
+            be averaged away. The three worst measures count {BS_TOP_WEIGHTS.map((w) => `${w * 100}%`).join(", ")}. A clean game
+            scores 0. Because five-level ratings are coarse, the numbers are shown to the nearest 5.
+          </li>
+          <li>
+            <strong className="text-on-surface">The verdict</strong> is a fixed rule applied to those numbers and the price. The
+            same ratings always give the same verdict, and the rules are the ones listed above.
+          </li>
+        </ul>
       </Section>
 
-
-      {/* Signal Taxonomy */}
-      <Section title="BS Signal Taxonomy">
-        <p className="mb-4 text-sm text-zinc-300">
-          We look for these specific signals in reviewer transcripts and game data.
-        </p>
-        <div className="grid gap-8 md:grid-cols-2">
-          <div>
-            <h4 className="mb-3 text-xs font-bold uppercase text-red-400">
-              Negative Signals ({NEGATIVE_SIGNALS.length})
-            </h4>
-            <div className="space-y-2">
-              {NEGATIVE_SIGNALS.map((s) => (
-                <div key={s.key} className="text-xs">
-                  <span className="font-medium text-red-300">{s.label}</span>
-                  <span className="text-zinc-500"> — {s.description}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-          <div>
-            <h4 className="mb-3 text-xs font-bold uppercase text-green-400">
-              Positive Signals ({POSITIVE_SIGNALS.length})
-            </h4>
-            <div className="space-y-2">
-              {POSITIVE_SIGNALS.map((s) => (
-                <div key={s.key} className="text-xs">
-                  <span className="font-medium text-green-300">{s.label}</span>
-                  <span className="text-zinc-500"> — {s.description}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      <Section title="What we read">
+        <ul className="space-y-3 text-sm text-on-surface-variant">
+          <li>
+            <strong className="text-on-surface">Video reviews.</strong> Transcripts from {TRUSTED_REVIEWERS.length} reviewer
+            channels: {TRUSTED_REVIEWERS.map((r) => r.channelName).join(", ")}.
+          </li>
+          <li>
+            <strong className="text-on-surface">Written reviews.</strong> Full text of up to five critic reviews per game from
+            outlets such as {PRIORITY_OUTLETS.slice(0, 5).join(", ")}, found through OpenCritic. We list every critic review
+            we found under Sources on each game.
+          </li>
+          <li>
+            <strong className="text-on-surface">Player reviews.</strong> On Steam: the most helpful positive and negative reviews
+            from players with 20+ hours, plus how the last 30 days compare with all time.
+          </li>
+          <li>
+            <strong className="text-on-surface">Store facts.</strong> Current Steam price, in-app purchases, DLC and achievement
+            rates, plus price history from IsThereAnyDeal. Time to beat comes from HowLongToBeat, with IGDB community data as a cross-check and fallback. Release data comes from IGDB.
+          </li>
+        </ul>
       </Section>
 
-      {/* Trusted Reviewers */}
-      <Section title="Trusted Reviewers">
-        <p className="mb-4 text-sm text-zinc-300">
-          BS Meter analyzes transcripts from these reviewers, chosen for their
-          expertise in detecting specific types of BS.
-        </p>
-        <div className="grid gap-4 sm:grid-cols-2">
-          {TRUSTED_REVIEWERS.map((r) => (
-            <div
-              key={r.slug}
-              className="rounded-lg border border-zinc-800 bg-zinc-900 p-4"
-            >
-              <h4 className="font-semibold text-white">{r.channelName}</h4>
-              <p className="text-xs font-medium text-zinc-400">
-                {r.specialty}
-              </p>
-              <p className="mt-1 text-xs text-zinc-500">{r.description}</p>
-            </div>
-          ))}
-        </div>
-      </Section>
-
-      {/* Data Sources */}
-      <Section title="Data Sources">
-        <ul className="space-y-2 text-sm text-zinc-300">
-          <li>
-            <strong className="text-white">IGDB</strong> — Game metadata,
-            release dates, genres, cover art
-          </li>
-          <li>
-            <strong className="text-white">HowLongToBeat</strong> — Main story,
-            main+extras, and completionist time data
-          </li>
-          <li>
-            <strong className="text-white">OpenCritic</strong> — Critic review
-            scores and tiers
-          </li>
-          <li>
-            <strong className="text-white">YouTube</strong> — Reviewer
-            transcripts from trusted channels
-          </li>
-          <li>
-            <strong className="text-white">Reddit via Perplexity</strong> — User
-            sentiment, bug reports, and community complaints
-          </li>
-          <li>
-            <strong className="text-white">Automated scoring</strong> — Analysis
-            across all 9 dimensions
-          </li>
+      <Section title="Limits you should know about">
+        <ul className="space-y-3 text-sm text-on-surface-variant">
+          <li>The ratings are an AI&apos;s reading of reviews, not a measurement. A game with few reviews gets a less certain rating.</li>
+          <li>Steam player evidence reflects the PC version. Console-only games are judged on reviewers and critics.</li>
+          <li>Verdicts use today&apos;s Steam price where there is one. Games not on Steam show a list price instead, labeled as such.</li>
+          <li>Reviews describe a game at the time they were written. Patches can make older complaints out of date.</li>
+          <li>The weights and verdict rules are our judgment calls, and we change them as we test them.</li>
         </ul>
       </Section>
     </div>
   );
 }
 
-function Section({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+function MeasureList({ title, color, items }: { title: string; color: string; items: { key: string; label: string; summary: string }[] }) {
+  return (
+    <div className="rounded-xl bg-surface-container p-5">
+      <h3 className="mb-3 font-headline text-sm font-black uppercase tracking-widest" style={{ color }}>{title}</h3>
+      <ul className="space-y-3">
+        {items.map((m) => (
+          <li key={m.key}>
+            <p className="font-headline text-sm font-bold text-on-surface">{m.label}</p>
+            <p className="text-xs text-on-surface-variant">{m.summary}</p>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="mb-12">
-      <h2 className="mb-4 text-xl font-bold text-white">{title}</h2>
+      <h2 className="mb-4 font-headline text-xl font-bold text-on-surface">{title}</h2>
       {children}
     </section>
   );

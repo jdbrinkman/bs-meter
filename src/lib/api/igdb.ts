@@ -29,7 +29,7 @@ async function getAccessToken(): Promise<string> {
 }
 
 const IGDB_FIELDS =
-  "name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date";
+  "name,slug,summary,cover.url,genres.name,platforms.name,involved_companies.company.name,involved_companies.developer,involved_companies.publisher,first_release_date,game_type.type,rating_count";
 
 // Mobile/handheld platforms that shouldn't appear for console/PC games
 const MOBILE_PLATFORMS = new Set([
@@ -46,6 +46,25 @@ export function filterPlatforms(platforms: string[]): string[] {
   return platforms.filter((p) => !MOBILE_PLATFORMS.has(p));
 }
 
+// IGDB types that are real, standalone games. Everything else (Bundle, Mod, Update, Expansion,
+// DLC, Season, Pack...) is never the game we want, even when it ranks first in search.
+const GAME_TYPES = new Set(["Main Game", "Remake", "Remaster", "Standalone Expansion", "Expanded Game", "Port", "Fork"]);
+
+function normName(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+}
+
+/** Picks the right IGDB record from search candidates. Exported so it can be tested offline. */
+export function pickIGDBCandidate(title: string, candidates: IGDBGame[]): IGDBGame | null {
+  const real = candidates.filter((c) => GAME_TYPES.has(c.game_type?.type ?? ""));
+  const exact = real.filter((c) => c.name.toLowerCase() === title.toLowerCase());
+  const normalized = real.filter((c) => normName(c.name) === normName(title));
+  const pool = exact.length ? exact : normalized;
+  if (!pool.length) return null; // no confident match: caller must report it, not guess
+  // IGDB has duplicate entries for some games; the real one has far more ratings.
+  return [...pool].sort((a, b) => (b.rating_count ?? 0) - (a.rating_count ?? 0))[0];
+}
+
 export async function searchIGDB(title: string): Promise<IGDBGame | null> {
   const token = await getAccessToken();
 
@@ -56,13 +75,12 @@ export async function searchIGDB(title: string): Promise<IGDBGame | null> {
       Authorization: `Bearer ${token}`,
       "Content-Type": "text/plain",
     },
-    body: `search "${title}"; fields ${IGDB_FIELDS}; limit 1;`,
+    body: `search "${title.replace(/"/g, "")}"; fields ${IGDB_FIELDS}; limit 15;`,
   });
 
   if (!res.ok) throw new Error(`IGDB search failed: ${res.status}`);
 
-  const results: IGDBGame[] = await res.json();
-  return results[0] || null;
+  return pickIGDBCandidate(title, (await res.json()) as IGDBGame[]);
 }
 
 export async function searchIGDBBySlug(slug: string): Promise<IGDBGame | null> {
@@ -100,4 +118,51 @@ export function formatCoverUrl(url: string | undefined): string | null {
   if (!url) return null;
   // IGDB returns //images.igdb.com/... — we want https and larger size
   return url.replace("t_thumb", "t_cover_big").replace("//", "https://");
+}
+
+// ---- Time to beat (IGDB community submissions, seconds) -----------------------------------------
+export type TimeToBeat = {
+  /** Hours for a rushed playthrough, a normal one, and completing everything. null when nobody submitted it. */
+  fastHours: number | null;
+  normalHours: number | null;
+  completeHours: number | null;
+  /** Number of submissions behind the numbers. */
+  count: number;
+};
+
+type RawTimeToBeat = { game_id: number; hastily?: number; normally?: number; completely?: number; count?: number };
+
+const toHours = (seconds?: number) => (seconds ? Math.round((seconds / 3600) * 10) / 10 : null);
+
+export function parseTimeToBeat(raw: RawTimeToBeat): TimeToBeat {
+  return { fastHours: toHours(raw.hastily), normalHours: toHours(raw.normally), completeHours: toHours(raw.completely), count: raw.count ?? 0 };
+}
+
+/**
+ * Decides whether IGDB's numbers are safe to show. Rejects thin samples and impossible data
+ * (a "complete" run shorter than a "normal" one), and drops a completion time that is a 6x+ outlier
+ * (IGDB has 5,000-hour entries) while keeping the fast and normal times. Returns the cleaned numbers.
+ */
+export function usableTimeToBeat(t: TimeToBeat): { ok: boolean; reason: string; cleaned: TimeToBeat } {
+  const reject = (reason: string) => ({ ok: false, reason, cleaned: t });
+  if (t.count < 3) return reject(`only ${t.count} submission${t.count === 1 ? "" : "s"}`);
+  if (t.normalHours == null) return reject("no normal-playthrough time");
+  if (t.fastHours != null && t.fastHours > t.normalHours) return reject("fast run longer than normal run");
+  if (t.completeHours != null && t.completeHours < t.normalHours) return reject("complete run shorter than normal run");
+  if (t.completeHours != null && t.completeHours > t.normalHours * 6) {
+    return { ok: true, reason: "completion time dropped (over 6x normal)", cleaned: { ...t, completeHours: null } };
+  }
+  return { ok: true, reason: "ok", cleaned: t };
+}
+
+export async function fetchTimeToBeat(igdbId: number): Promise<TimeToBeat | null> {
+  const token = await getAccessToken();
+  const res = await fetch("https://api.igdb.com/v4/game_time_to_beats", {
+    method: "POST",
+    headers: { "Client-ID": process.env.IGDB_CLIENT_ID!, Authorization: `Bearer ${token}`, "Content-Type": "text/plain" },
+    body: `fields game_id,hastily,normally,completely,count; where game_id = ${igdbId}; limit 1;`,
+  });
+  if (!res.ok) throw new Error(`IGDB time-to-beat failed: ${res.status}`);
+  const rows = (await res.json()) as RawTimeToBeat[];
+  return rows[0] ? parseTimeToBeat(rows[0]) : null;
 }
